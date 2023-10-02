@@ -1,0 +1,62 @@
+[
+  {
+    "name": "privy-refresh-token",
+    "value": "bEqvtVF6JPPCjN8h_qiVYS2ny29HWjvnxztXrHfv_wfrmAVgzzy2WLpLTvoLtVCre4LylWg7779hsrewnDEMug",
+    "domain": "www.friend.tech",
+    "path": "/",
+    "expires": 1698859836,
+    "size": 105,
+    "httpOnly": false,
+    "secure": true,
+    "session": false,
+    "sameSite": "Strict",
+    "sameParty": false,
+    "sourceScheme": "Secure",
+    "sourcePort": 443
+  },
+  {
+    "name": "privy-token",
+    "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWQiOiJjbG45NjJtaDMwMmF4anIwZmtsbnFoN2Z2IiwiaXNzIjoicHJpdnkuaW8iLCJpYXQiOjE2OTYyNjc4MzUsImF1ZCI6ImNsbDM1ODE4MjAwY2VrMjA4dGVkbWp2cXAiLCJzdWIiOiJkaWQ6cHJpdnk6Y2xsNjM4Z3FoMDRxMWw1MDhkd29xN2hxaiIsImV4cCI6MTY5NjI3MTQzNX0.rXqA8bscJHtnu8QNVqcRok-vL4JRL5qLnJINHE5JdpI6q2MwEBAEISHd5LbknsSiLDa-O1eEDaPIJehNTt_iUQ",
+    "domain": "www.friend.tech",
+    "path": "/",
+    "expires": 1696271435,
+    "size": 354,
+    "httpOnly": false,
+    "secure": true,
+    "session": false,
+    "sameSite": "Strict",
+    "sameParty": false,
+    "sourceScheme": "Secure",
+    "sourcePort": 443
+  },
+  {
+    "name": "AMP_1e7452e1e3",
+    "value": "JTdCJTIyZGV2aWNlSWQlMjIlM0ElMjI2YmY4MmFhOC0wODRjLTRkNzctOWIyMC00ZDY3NjdiMThiZDUlMjIlMkMlMjJzZXNzaW9uSWQlMjIlM0ExNjk2MjY3Nzg3NjQ1JTJDJTIyb3B0T3V0JTIyJTNBZmFsc2UlMkMlMjJsYXN0RXZlbnRUaW1lJTIyJTNBMTY5NjI2NzgzNjA2MCUyQyUyMmxhc3RFdmVudElkJTIyJTNBNSU3RA==",
+    "domain": ".friend.tech",
+    "path": "/",
+    "expires": 1727803836,
+    "size": 262,
+    "httpOnly": false,
+    "secure": false,
+    "session": false,
+    "sameSite": "Lax",
+    "sameParty": false,
+    "sourceScheme": "Secure",
+    "sourcePort": 443
+  },
+  {
+    "name": "AMP_MKTG_1e7452e1e3",
+    "value": "JTdCJTIycmVmZXJyZXIlMjIlM0ElMjJodHRwcyUzQSUyRiUyRmFjY291bnRzLmdvb2dsZS5jYSUyRiUyMiUyQyUyMnJlZmVycmluZ19kb21haW4lMjIlM0ElMjJhY2NvdW50cy5nb29nbGUuY2ElMjIlN0Q=",
+    "domain": ".friend.tech",
+    "path": "/",
+    "expires": 1727803787,
+    "size": 175,
+    "httpOnly": false,
+    "secure": true,
+    "session": false,
+    "sameSite": "Lax",
+    "sameParty": false,
+    "sourceScheme": "Secure",
+    "sourcePort": 443
+  }
+]

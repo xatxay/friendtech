@@ -12,7 +12,7 @@ async function navigateToFriendTech(): Promise<void> {
       headless: false,
     });
     const page = await browser.newPage();
-    loginLogic(page, email, password);
+    await loginLogic(page, email, password);
   } catch (err) {
     console.error(err);
   }
