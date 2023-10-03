@@ -32,3 +32,6 @@ build/
 *report.html
 
 /loginAuth/
+.handleLogin.ts
+.loginLogic.ts
+.saveLoginToken.ts
