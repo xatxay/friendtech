@@ -5,8 +5,8 @@ import loginLogic from './loginLogic';
 
 async function navigateToFriendTech(): Promise<void> {
   try {
-    const email = 'jametrades618@gmail.com';
-    const password = 'Xatxay123789';
+    const email = process.env.EMAIL;
+    const password = process.env.PASSWORD;
     const browser = await puppeteer.launch({
       executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       headless: false,

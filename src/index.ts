@@ -1,5 +1,6 @@
 import * as moduleAlias from 'module-alias';
-import './loginAuth/handleLogin';
+import './FTScrape';
+
 const sourcePath = process.env.NODE_ENV === 'development' ? 'src' : __dirname;
 moduleAlias.addAliases({
   '@server': sourcePath,

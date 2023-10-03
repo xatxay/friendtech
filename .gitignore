@@ -30,4 +30,5 @@ build/
 
 .env
 *report.html
-saveLoginToken.ts
+
+loginAuth/
