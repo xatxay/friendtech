@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { sendNewTradeNotification } from './config/discordBot';
+import Bignumber from 'bignumber.js';
 
 const loginToken = process.env.LOGINTOKEN;
 
@@ -27,11 +29,12 @@ async function setCronjob() {
       for (const trade of newData) {
         const tradeString = JSON.stringify(trade);
         if (!oldData.includes(tradeString)) {
-          console.log(
-            `--------------New Trade-----------\n ${trade.trader.name} ${trade.isBuy ? 'bought' : 'sold'} ${
-              trade.subject.name
-            } key|ETH: ${(trade.ethAmount / 1000000000000000000).toFixed(2)} ${new Date(trade.createdAt)}`,
-          );
+          const ethAmount = new Bignumber(trade.ethAmount).dividedBy(new Bignumber('1000000000000000000')).toFixed(2);
+          const message = `${trade.isBuy ? '🟢' : '🔴'} ${trade.trader.name} ${trade.isBuy ? 'bought' : 'sold'} ${
+            trade.subject.name
+          } key | ETH: ${ethAmount}`;
+          sendNewTradeNotification(message);
+          console.log(message);
         }
         oldData = newDataString;
       }
@@ -42,3 +45,5 @@ async function setCronjob() {
 }
 
 setCronjob();
+
+//| ${new Date(trade.createdAt).toLocaleString()}
