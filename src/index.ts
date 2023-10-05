@@ -1,5 +1,6 @@
 import * as moduleAlias from 'module-alias';
 import './FTScrape';
+import createDb from './channelDB';
 
 const sourcePath = process.env.NODE_ENV === 'development' ? 'src' : __dirname;
 moduleAlias.addAliases({
@@ -17,6 +18,7 @@ const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || '5000';
 
 async function startServer() {
+  createDb();
   const app = createServer();
   const server = http.createServer(app).listen({ host, port }, () => {
     const addressInfo = server.address() as AddressInfo;
