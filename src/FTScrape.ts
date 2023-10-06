@@ -15,13 +15,20 @@ async function getUsername(channel_id: string): Promise<string> {
     }
   } catch (err) {
     console.error(err);
-    throw err;
+    return null;
   }
 }
 
-async function getUserWallet(channel_id: string) {
+async function getUserWallet(channel_id: string): Promise<string | number> {
+  if (!channel_id) {
+    throw new Error('No channel_id provided');
+  }
   try {
     const username = await getUsername(channel_id);
+    if (!username) {
+      console.log(`No username found for channel_id: ${channel_id}`);
+      return null;
+    }
     const headers = {
       Authorization: loginToken,
     };
@@ -31,10 +38,20 @@ async function getUserWallet(channel_id: string) {
     } else {
       apiUrl = `${process.env.SEARCHUSERAPI}${username}`;
     }
-    const response = await axios.get(apiUrl, { headers });
-    return response.data.users[0].address;
+    try {
+      const response = await axios.get(apiUrl, { headers });
+      const users = response.data.users;
+      if (!users || users.length === 0 || !users[0].address) {
+        throw new Error('Error getting api response');
+      }
+      return users[0].address;
+    } catch (err) {
+      console.error('API error: ', err);
+      throw new Error('Falied to get wallet from API');
+    }
   } catch (err) {
     console.error(err);
+    throw err;
   }
 }
 
@@ -57,9 +74,9 @@ async function getTradeData(channel_id: string) {
 }
 
 //repeat calling the api
-async function setCronjob(channel_id: string) {
+function setCronjob(channel_id: string): () => Promise<void> {
   let oldData = '';
-  setInterval(async () => {
+  return async function monitor() {
     try {
       const data = await getTradeData(channel_id);
       const newData = data.events;
@@ -70,10 +87,12 @@ async function setCronjob(channel_id: string) {
         const tradeString = JSON.stringify(trade);
         if (!oldData.includes(tradeString)) {
           const ethAmount = new Bignumber(trade.ethAmount).dividedBy(new Bignumber('1000000000000000000')).toFixed(3);
-          const message = `${trade.isBuy ? '🟢' : '🔴'} ${trade.trader.name} ${trade.isBuy ? 'bought' : 'sold'} ${
-            trade.subject.name
-          } key | ETH: ${ethAmount}`;
-          sendNewTradeNotification(message);
+          const message = `${trade.isBuy ? '🟢' : '🔴'} [${trade.trader.username}](https://twitter.com/${
+            trade.trader.username
+          }) ${trade.isBuy ? 'bought' : 'sold'} [${trade.subject.name}](https://twitter.com/${
+            trade.subject.username
+          }) key | ETH: ${ethAmount}`;
+          sendNewTradeNotification(message, channel_id);
           console.log(message);
         }
         oldData = newDataString;
@@ -81,13 +100,35 @@ async function setCronjob(channel_id: string) {
     } catch (err) {
       console.error(err);
     }
-  }, 10000);
+  };
 }
 
-//needed server_id to get username so i have to pass server_id here
-function startMonitoring(channel_id: string): void {
-  setCronjob(channel_id);
-}
-
-export default startMonitoring;
+export { setCronjob, getUserWallet };
 //| ${new Date(trade.createdAt).toLocaleString()}
+
+// async function setCronjob(channel_id: string): Promise<void> {
+//   let oldData = '';
+//   try {
+//     const data = await getTradeData(channel_id);
+//     const newData = data.events;
+//     const newDataString = JSON.stringify(newData);
+//     console.log('monitoring@@@@@@@@@@@@@@@@@@@@@@@@@');
+//     //loop and covert to string to compare
+//     for (const trade of newData) {
+//       const tradeString = JSON.stringify(trade);
+//       if (!oldData.includes(tradeString)) {
+//         const ethAmount = new Bignumber(trade.ethAmount).dividedBy(new Bignumber('1000000000000000000')).toFixed(3);
+//         const message = `${trade.isBuy ? '🟢' : '🔴'} [${trade.trader.username}](https://twitter.com/${
+//           trade.trader.username
+//         }) ${trade.isBuy ? 'bought' : 'sold'} [${trade.subject.name}](https://twitter.com/${
+//           trade.subject.username
+//         }) key | ETH: ${ethAmount}`;
+//         sendNewTradeNotification(message, channel_id);
+//         console.log(message);
+//       }
+//       oldData = newDataString;
+//     }
+//   } catch (err) {
+//     console.error(err);
+//   }
+// }
