@@ -1,6 +1,6 @@
 import { ActivityType, Client, Events, GatewayIntentBits } from 'discord.js';
 import pool from './newPool';
-import { setCronjob } from './FTScrape';
+import { getUserWallet, setCronjob } from './FTScrape';
 
 const discordToken = process.env.DISCORD;
 //create the bot
@@ -39,10 +39,6 @@ client.on('messageCreate', async (message) => {
     const channelName = message.guild.name;
     console.log('server name: ', channelName);
     //get wallet address to insert into the database
-    // if (channelId) {
-    //   const wallet = await getUserWallet(channelId);
-    //   console.log('MESSAGECREATE WALLET: ', wallet);
-    // }
     try {
       await pool.query(
         'INSERT INTO notification_channels (username, channel_name, server_id, channel_id) VALUES ($1, $2, $3, $4) ON CONFLICT (server_id) DO UPDATE SET channel_id = $4',
@@ -52,6 +48,17 @@ client.on('messageCreate', async (message) => {
     } catch (err) {
       console.error('Database insert/update failed: ', err);
       message.channel.send(`There's error setting the notification channel`);
+    }
+    //need to get the username first to be able to use getUserWallet
+    try {
+      const wallet = await getUserWallet(channelId);
+      console.log('MESSAGECREATE WALLET: ', wallet);
+      await pool.query(`UPDATE notification_channels SET wallet_address = $1 WHERE channel_id = $2`, [
+        wallet,
+        channelId,
+      ]);
+    } catch (err) {
+      console.error(err);
     }
     const monitor = setCronjob(channelId);
     setInterval(monitor, 10000);
