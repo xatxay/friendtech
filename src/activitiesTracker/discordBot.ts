@@ -1,5 +1,5 @@
 import { ActivityType, Client, Events, GatewayIntentBits } from 'discord.js';
-import pool from './newPool';
+import pool from '../database/newPool';
 import { getUserWallet, setCronjob } from './FTScrape';
 
 const discordToken = process.env.DISCORD;
@@ -14,7 +14,7 @@ async function init() {
     const res = await pool.query('SELECT * FROM notification_channels');
     for (const row of res.rows) {
       const monitor = setCronjob(row.channel_id);
-      setInterval(monitor, 10000);
+      setInterval(monitor, 2000);
     }
   } catch (err) {
     console.error(err);
@@ -61,7 +61,7 @@ client.on('messageCreate', async (message) => {
       console.error(err);
     }
     const monitor = setCronjob(channelId);
-    setInterval(monitor, 10000);
+    setInterval(monitor, 2000);
   }
 });
 

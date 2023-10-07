@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { sendNewTradeNotification } from './discordBot';
 import Bignumber from 'bignumber.js';
-import pool from './newPool';
+import pool from '../database/newPool';
 
 const loginToken = process.env.LOGINTOKEN;
 
