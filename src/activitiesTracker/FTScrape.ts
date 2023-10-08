@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { sendNewMessageNotification } from '../chatroom/sendChatMessages';
+import { sendNewMessageNotification } from '../chatroom/initalChatLoad';
 import Bignumber from 'bignumber.js';
 import pool from '../database/newPool';
 
@@ -105,7 +105,7 @@ function setCronjob(channel_id: string): () => Promise<void> {
   };
 }
 
-export { setCronjob, getUserWallet };
+export { setCronjob, getUserWallet, getUsername };
 //| ${new Date(trade.createdAt).toLocaleString()}
 
 // async function setCronjob(channel_id: string): Promise<void> {

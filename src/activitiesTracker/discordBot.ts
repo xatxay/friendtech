@@ -1,9 +1,12 @@
 import { ActivityType, Client, Events, GatewayIntentBits } from 'discord.js';
 import { getUserFromDb, init } from './getUserFromDb';
-import { sendChatMessage } from '@server/chatroom/sendChatMessages';
+import { sendChatMessage } from '../chatroom/initalChatLoad';
 
 const discordToken = process.env.DISCORD;
 const chatRoomId = process.env.CHATROOMCHANNEL;
+const tableName = {
+  notification_channels: 'notification_channels',
+};
 
 //create the bot
 export const client = new Client({
@@ -15,13 +18,13 @@ export const client = new Client({
 client.once(Events.ClientReady, (c) => {
   console.log(`Let start tracking! ${c.user.tag}`);
   client.user.setActivity('https://twitter.com/IrregularIUP', { type: ActivityType.Playing });
-  init();
+  init(tableName.notification_channels);
 });
 
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  getUserFromDb(message);
+  getUserFromDb(message, tableName.notification_channels);
   console.log('Received message in channel: ', message.channel.id);
   if (message.channel.id === chatRoomId) {
     sendChatMessage(message);

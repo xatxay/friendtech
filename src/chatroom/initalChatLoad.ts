@@ -1,9 +1,22 @@
 import WebSocket from 'ws';
-import { sendNewMessageNotification } from '../chatroom/sendChatMessages';
+// import { Message } from '@server/activitiesTracker/getUserFromDb';
+import { client } from '../activitiesTracker/discordBot';
+
+export interface Message {
+  content: string;
+  guild: {
+    id: string;
+    name: string;
+  };
+  channel: {
+    id: string;
+    send: (message: string) => void;
+  };
+}
 
 export const ftWsEndpoint = process.env.WSENDPOINT;
 const chatRoomId = process.env.CHATROOMCHANNEL;
-let ws: WebSocket;
+let ws: WebSocket; //declare type
 
 function initalizeWebsocket() {
   ws = new WebSocket(ftWsEndpoint);
@@ -26,7 +39,7 @@ function initalizeWebsocket() {
       case 'receivedMessage': {
         console.log('Message received: ', messageObj.text);
         const messageText = messageObj.text;
-        const receivedMessage = messageText.replace(/^"|"$/g, '');
+        const receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         sendNewMessageNotification(receivedMessage, chatRoomId);
         break;
       }
@@ -40,7 +53,7 @@ function initalizeWebsocket() {
   //Handle errors
   ws.on('error', console.error);
 
-  //see why websocket connection closes
+  //see why websocket connection closes and reconnect
   ws.on('close', (code, reason) => {
     console.log(`Websocket closed with code: ${code}. Reason: ${reason.toString()}`);
     //attempt to reconnect
@@ -50,9 +63,34 @@ function initalizeWebsocket() {
 
 initalizeWebsocket(); //function call
 
-//heartbeat every 15 secs
+//heartbeat every 5 secs
 setInterval(() => {
   if (ws.readyState === WebSocket.OPEN) {
     ws.ping(); //built in ping pong
   }
 }, 5000);
+
+export async function sendNewMessageNotification(message: string, channel_id: string): Promise<void> {
+  try {
+    const channel = client.channels.cache.get(channel_id);
+    if (!channel || !channel.isTextBased()) return;
+    channel.send(message);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function sendChatMessage(message: Message): void {
+  const ftMessage = {
+    action: 'sendMessage',
+    text: message.content,
+    imagePaths: [],
+    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517',
+  };
+  console.log('Discord message: ', message.content);
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(ftMessage));
+  } else {
+    console.error('Websocket is not open. Cant send message');
+  }
+}

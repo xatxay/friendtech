@@ -6,3 +6,4 @@ CREATE TABLE IF NOT EXISTS notification_channels (
     channel_id VARCHAR(255) NOT NULL,
     wallet_address VARCHAR(255)
 )
+

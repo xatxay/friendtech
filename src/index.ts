@@ -19,7 +19,8 @@ const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || '5000';
 
 async function startServer() {
-  createDb();
+  createDb('channelDB.sql');
+  createDb('chatRoomHolding.sql');
   const app = createServer();
   const server = http.createServer(app).listen({ host, port }, () => {
     const addressInfo = server.address() as AddressInfo;
