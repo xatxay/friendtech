@@ -1,12 +1,12 @@
 import axios from 'axios';
-import { sendNewTradeNotification } from './discordBot';
+import { sendNewMessageNotification } from '../chatroom/sendChatMessages';
 import Bignumber from 'bignumber.js';
 import pool from '../database/newPool';
 
 const loginToken = process.env.LOGINTOKEN;
 
 async function getUsername(channel_id: string): Promise<string> {
-  console.log('THIS IS GET USERNAME: ', channel_id);
+  // console.log('THIS IS GET USERNAME: ', channel_id);
   try {
     const res = await pool.query('SELECT username FROM notification_channels WHERE channel_id = $1', [channel_id]);
     if (res.rows.length > 0) {
@@ -21,7 +21,7 @@ async function getUsername(channel_id: string): Promise<string> {
 }
 
 async function getUserWallet(channel_id: string): Promise<string> {
-  console.log('channel id: ', channel_id);
+  // console.log('channel id: ', channel_id);
   if (!channel_id) {
     throw new Error('No channel_id provided');
   }
@@ -63,9 +63,9 @@ async function getTradeData(channel_id: string) {
     const headers = {
       Authorization: loginToken,
     };
-    console.log('fetching watchlist');
+    // console.log('fetching watchlist');
     const wallet = await getUserWallet(channel_id);
-    console.log('wallet: ', wallet);
+    // console.log('wallet: ', wallet);
     const apiUrl = `${process.env.API}${wallet}`;
     const response = await axios.get(apiUrl, { headers });
     return response.data;
@@ -94,7 +94,7 @@ function setCronjob(channel_id: string): () => Promise<void> {
           }) ${trade.isBuy ? 'bought' : 'sold'} [${trade.subject.name}](https://twitter.com/${
             trade.subject.username
           }) key | ETH: ${ethAmount}`;
-          sendNewTradeNotification(message, channel_id);
+          sendNewMessageNotification(message, channel_id);
           console.log(message);
         }
         oldData = newDataString;

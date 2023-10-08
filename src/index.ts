@@ -1,6 +1,7 @@
 import * as moduleAlias from 'module-alias';
 import './chatroom/initalChatLoad';
 import createDb from './database/channelDB';
+import './activitiesTracker/FTScrape';
 
 const sourcePath = process.env.NODE_ENV === 'development' ? 'src' : __dirname;
 moduleAlias.addAliases({
