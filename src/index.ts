@@ -2,6 +2,7 @@ import * as moduleAlias from 'module-alias';
 import './chatroom/initalChatLoad';
 import createDb from './database/channelDB';
 import './activitiesTracker/FTScrape';
+import './chatroom/roomPermission';
 
 const sourcePath = process.env.NODE_ENV === 'development' ? 'src' : __dirname;
 moduleAlias.addAliases({
@@ -21,6 +22,7 @@ const port = process.env.PORT || '5000';
 async function startServer() {
   createDb('channelDB.sql');
   createDb('chatRoomHolding.sql');
+  createDb('discordWebhook.sql');
   const app = createServer();
   const server = http.createServer(app).listen({ host, port }, () => {
     const addressInfo = server.address() as AddressInfo;

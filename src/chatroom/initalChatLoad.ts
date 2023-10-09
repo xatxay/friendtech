@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 // import { Message } from '@server/activitiesTracker/getUserFromDb';
 import { client } from '../activitiesTracker/discordBot';
+import { sendMessageToServer } from './discordWebhook';
 
 export interface Message {
   content: string;
@@ -40,7 +41,19 @@ function initalizeWebsocket() {
         console.log('Message received: ', messageObj.text);
         const messageText = messageObj.text;
         const receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
-        sendNewMessageNotification(receivedMessage, chatRoomId);
+        const displayName = messageObj.twitterName;
+        const twitterName = displayName.replace(/^"|"$/g, '');
+        console.log('!name: ', twitterName);
+        const userAvatar = messageObj.twitterPfpUrl;
+        if (messageObj.chatRoomId !== messageObj.sendingUserId) {
+          sendNewMessageNotification(receivedMessage, chatRoomId);
+          sendMessageToServer(serverId, receivedMessage, twitterName, userAvatar);
+        }
+        break;
+      }
+      case 'messages': {
+        console.log('Old messages: ');
+        // console.log('Old messages: ', messageObj.messages);
         break;
       }
       default: {
@@ -92,5 +105,18 @@ export function sendChatMessage(message: Message): void {
     ws.send(JSON.stringify(ftMessage));
   } else {
     console.error('Websocket is not open. Cant send message');
+  }
+}
+
+export function getChatHistory(): void {
+  const chatHistoryRequest = {
+    action: 'requestMessages',
+    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517',
+    pageStart: null,
+  };
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(chatHistoryRequest));
+  } else {
+    console.error('Websocket is not open, cannot get chat history');
   }
 }
