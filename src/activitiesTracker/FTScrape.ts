@@ -2,13 +2,14 @@ import axios from 'axios';
 import { sendNewMessageNotification } from '../chatroom/initalChatLoad';
 import Bignumber from 'bignumber.js';
 import pool from '../database/newPool';
+import { tableName } from './discordBot';
 
 const loginToken = process.env.LOGINTOKEN;
 
-async function getUsername(channel_id: string): Promise<string> {
+async function getUsername(table_name: string, channel_id: string): Promise<string> {
   // console.log('THIS IS GET USERNAME: ', channel_id);
   try {
-    const res = await pool.query('SELECT username FROM notification_channels WHERE channel_id = $1', [channel_id]);
+    const res = await pool.query(`SELECT username FROM ${table_name} WHERE channel_id = $1`, [channel_id]);
     if (res.rows.length > 0) {
       return res.rows[0].username;
     } else {
@@ -26,8 +27,8 @@ async function getUserWallet(channel_id: string): Promise<string> {
     throw new Error('No channel_id provided');
   }
   try {
-    const username = await getUsername(channel_id);
-    if (!username) {
+    const notificationChannelUsername = await getUsername(tableName.notification_channels, channel_id);
+    if (!notificationChannelUsername) {
       console.log(`No username found for channel_id: ${channel_id}`);
       return null;
     }
@@ -35,10 +36,10 @@ async function getUserWallet(channel_id: string): Promise<string> {
       Authorization: loginToken,
     };
     let apiUrl: string;
-    if (username.toLowerCase() === 'default') {
+    if (notificationChannelUsername.toLowerCase() === 'default') {
       apiUrl = process.env.DEFAULTSEARCHUSERAPI;
     } else {
-      apiUrl = `${process.env.SEARCHUSERAPI}${username}`;
+      apiUrl = `${process.env.SEARCHUSERAPI}${notificationChannelUsername}`;
     }
     try {
       const response = await axios.get(apiUrl, { headers });

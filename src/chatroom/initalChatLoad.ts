@@ -1,5 +1,4 @@
 import WebSocket from 'ws';
-// import { Message } from '@server/activitiesTracker/getUserFromDb';
 import { client } from '../activitiesTracker/discordBot';
 import { sendMessageToServer } from './discordWebhook';
 
@@ -16,7 +15,7 @@ export interface Message {
 }
 
 export const ftWsEndpoint = process.env.WSENDPOINT;
-const chatRoomId = process.env.CHATROOMCHANNEL;
+// const chatRoomId = process.env.CHATROOMCHANNEL;
 let ws: WebSocket; //declare type
 
 function initalizeWebsocket() {
@@ -43,11 +42,11 @@ function initalizeWebsocket() {
         const receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         const displayName = messageObj.twitterName;
         const twitterName = displayName.replace(/^"|"$/g, '');
+        const userPfp = messageObj.twitterPfpUrl;
         console.log('!name: ', twitterName);
-        const userAvatar = messageObj.twitterPfpUrl;
         if (messageObj.chatRoomId !== messageObj.sendingUserId) {
-          sendNewMessageNotification(receivedMessage, chatRoomId);
-          sendMessageToServer(serverId, receivedMessage, twitterName, userAvatar);
+          // sendNewMessageNotification(receivedMessage, chatRoomId);
+          sendMessageToServer(receivedMessage, twitterName, userPfp);
         }
         break;
       }
