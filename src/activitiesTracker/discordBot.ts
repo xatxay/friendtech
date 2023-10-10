@@ -1,9 +1,9 @@
-import { ActivityType, Client, Events, GatewayIntentBits } from 'discord.js';
+import { ActivityType, ChannelType, Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { getUserFromDb, init } from './getUserFromDb';
 import { getChatHistory, sendChatMessage } from '../chatroom/initalChatLoad';
 
 const discordToken = process.env.DISCORD;
-const chatRoomId = process.env.CHATROOMCHANNEL;
+const chatRoomId = process.env.CHATROOMCHANNEL; //need to be dynamic
 export const tableName = {
   notification_channels: 'notification_channels',
   server_webhooks: 'server_webhooks',
@@ -12,7 +12,13 @@ export const tableName = {
 //create the bot
 export const client = new Client({
   //give the bot the events
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+  ],
+  partials: [Partials.Channel, Partials.Message],
 });
 
 //event listener trigger once
@@ -26,8 +32,11 @@ client.once(Events.ClientReady, (c) => {
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  await getUserFromDb(message, tableName.notification_channels);
-  console.log('Received message in channel: ', message.channel.id);
+  if (!message.author.bot || message.channel.type === ChannelType.DM) {
+    await getUserFromDb(message, tableName.notification_channels);
+    console.log('Received message in channel: ', message.channel.id);
+    console.log(`Message from ${message.author.username}: ${message.content}`);
+  }
   if (message.channel.id === chatRoomId) {
     sendChatMessage(message);
   }

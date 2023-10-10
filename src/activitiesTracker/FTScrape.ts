@@ -4,7 +4,7 @@ import Bignumber from 'bignumber.js';
 import pool from '../database/newPool';
 import { tableName } from './discordBot';
 
-const loginToken = process.env.LOGINTOKEN;
+const loginToken = process.env.LOGINTOKEN; //only used to log in but wallet is dynamic
 
 async function getUsername(table_name: string, channel_id: string): Promise<string> {
   // console.log('THIS IS GET USERNAME: ', channel_id);

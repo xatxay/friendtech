@@ -20,9 +20,12 @@ const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || '5000';
 
 async function startServer() {
-  await createDb('channelDB.sql');
-  await createDb('chatRoomHolding.sql');
-  await createDb('discordWebhook.sql');
+  await Promise.all([
+    createDb('notification_channels.sql'),
+    createDb('chatRoomHolding.sql'),
+    createDb('discordWebhook.sql'),
+    createDb('jwtToken.sql'),
+  ]);
   const app = createServer();
   const server = http.createServer(app).listen({ host, port }, () => {
     const addressInfo = server.address() as AddressInfo;

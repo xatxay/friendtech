@@ -14,8 +14,7 @@ export interface Message {
   };
 }
 
-export const ftWsEndpoint = process.env.WSENDPOINT;
-// const chatRoomId = process.env.CHATROOMCHANNEL;
+export const ftWsEndpoint = process.env.WSENDPOINT; //GET JWT TOKEN FOR THE LINK
 let ws: WebSocket; //declare type
 
 function initalizeWebsocket() {
@@ -45,7 +44,6 @@ function initalizeWebsocket() {
         const userPfp = messageObj.twitterPfpUrl;
         console.log('!name: ', twitterName);
         if (messageObj.chatRoomId !== messageObj.sendingUserId) {
-          // sendNewMessageNotification(receivedMessage, chatRoomId);
           sendMessageToServer(receivedMessage, twitterName, userPfp);
         }
         break;
@@ -97,7 +95,7 @@ export function sendChatMessage(message: Message): void {
     action: 'sendMessage',
     text: message.content,
     imagePaths: [],
-    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517',
+    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517', //MAKE THIS DYNAMIC
   };
   console.log('Discord message: ', message.content);
   if (ws.readyState === WebSocket.OPEN) {

@@ -18,6 +18,13 @@ interface UpdateParams {
   whereValue: string;
 }
 
+interface SelectParams {
+  tableName: string;
+  columns: string[];
+  whereColumn: string;
+  whereValue: string;
+}
+
 async function insertDatabase(params: InsertParams): Promise<void> {
   const columnNames = params.columns.join(', ');
   const placeholders = params.values.map((_, idx) => `$${idx + 1}`).join(', ');
@@ -35,12 +42,22 @@ async function insertDatabase(params: InsertParams): Promise<void> {
 
 async function updateDatabase(params: UpdateParams): Promise<void> {
   try {
-    const query = `UPDATE ${params.tableName} SET ${params.setColumn} = $1 WHERE ${params.whereColumn} = $2`;
-    await pool.query(query, [params.setValue, params.whereValue]);
+    const update = `UPDATE ${params.tableName} SET ${params.setColumn} = $1 WHERE ${params.whereColumn} = $2`;
+    await pool.query(update, [params.setValue, params.whereValue]);
     console.log('Database updated successfully');
   } catch (err) {
     console.error('Failed updating database: ', err);
   }
 }
 
-export { insertDatabase, updateDatabase, InsertParams, UpdateParams };
+async function selectDatabase(params: SelectParams): Promise<string | void> {
+  const columnNames = params.columns.join(', ');
+  try {
+    const select = `SELECT ${columnNames} FROM ${params.tableName} WHERE ${params.whereColumn} = $1`;
+    return await pool.query(select, [params.whereValue]);
+  } catch (err) {
+    console.error('Failed selecting items from database: ', err);
+  }
+}
+
+export { insertDatabase, updateDatabase, selectDatabase, InsertParams, UpdateParams, SelectParams };

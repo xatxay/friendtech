@@ -13,7 +13,7 @@ async function setupWebhookForServer(username: string, serverId: string, channel
     const webhook = await channel.createWebhook({ name: 'Spidey Bot' });
     try {
       await pool.query(
-        `INSERT INTO server_webhooks (username, server_id, channel_id, webhook_id, webhook_token) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO server_webhooks (username, server_id, channel_id, webhook_id, webhook_token) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (username) DO UPDATE SET server_id = $2, channel_id = $3, webhook_id = $4, webhook_token = $5`,
         [username, serverId, channelId, webhook.id, webhook.token],
       );
     } catch (err) {
@@ -25,7 +25,7 @@ async function setupWebhookForServer(username: string, serverId: string, channel
 }
 
 async function sendMessageToServer(message: string, twitterName: string, userPfp: string): Promise<void> {
-  const serverId = (await pool.query(`SELECT server_id FROM server_webhooks`)).rows[0].server_id;
+  const serverId = (await pool.query(`SELECT server_id FROM server_webhooks`)).rows[0].server_id; //MAKE THIS DYNAMIC
   console.log(`THIS IS THE WH SERVER ID: ${serverId}`);
   const webhookData = await pool.query(`SELECT webhook_id, webhook_token FROM server_webhooks WHERE server_id = $1`, [
     serverId,

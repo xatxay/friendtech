@@ -1,9 +1,21 @@
 import axios from 'axios';
 import pool from '@server/database/newPool';
+import { client } from '@server/activitiesTracker/discordBot';
+import { ChannelType } from 'discord.js';
 
-const loginToken = process.env.WSLOGIN;
+interface Holding {
+  username: string;
+  twitterNameNoEmoji: string;
+  balanceHolding: string;
+  balanceEthValue: string;
+  chatRoomId: string;
+  name: string;
+}
+interface RoomPermission {
+  holdings: Holding[];
+}
 
-async function getRoomPermission() {
+async function getRoomPermission(loginToken: string): Promise<RoomPermission | null> {
   console.log('get room permission function');
   try {
     const headers = {
@@ -19,19 +31,26 @@ async function getRoomPermission() {
     const balanceHolding = response.data.holdings[0].balance;
     const balanceEthValue = response.data.holdings[0].balanceEthValue;
     const chatRoomId = response.data.holdings[0].chatRoomId;
+    const name = response.data.holdings[0].name;
     console.log(
       `ROOM PERMISSION: \n username: ${username} | twitter name: ${twitterName} | holding: ${balanceHolding} | eth value: ${balanceEthValue}`,
     );
-    return { username, twitterNameNoEmoji, balanceHolding, balanceEthValue, chatRoomId };
+    return { holdings: [{ username, twitterNameNoEmoji, balanceHolding, balanceEthValue, chatRoomId, name }] };
   } catch (err) {
-    console.error(err);
+    if (err instanceof Error) {
+      console.error('error getting permission: ', err.message);
+    } else {
+      console.error('error getting permission');
+    }
     return null;
   }
 }
 
-async function insertChatRoomPermission() {
+async function insertChatRoomPermission(loginToken: string): Promise<void> {
   try {
-    const { username, twitterNameNoEmoji, balanceHolding, balanceEthValue, chatRoomId } = await getRoomPermission();
+    const {
+      holdings: [{ username, twitterNameNoEmoji, balanceHolding, balanceEthValue, chatRoomId }],
+    } = await getRoomPermission(loginToken);
     await pool.query(
       `INSERT INTO chat_room_holdings (username, twitter_name, balance_holding, balance_eth_value, chat_room_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (username) DO UPDATE SET chat_room_id = $5`,
       [username, twitterNameNoEmoji, balanceHolding, balanceEthValue, chatRoomId],
@@ -40,7 +59,29 @@ async function insertChatRoomPermission() {
     console.error(err);
   }
 }
-(async () => {
-  //   await getRoomPermission();
-  await insertChatRoomPermission();
-})();
+
+async function manageChannelsPermission(loginToken: string, serverId: string): Promise<void> {
+  try {
+    const data = await getRoomPermission(loginToken);
+    const guild = client.guilds.cache.get(serverId);
+    if (!guild) throw new Error('server id not found');
+    const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
+    //create channel if not exists
+    for (const room of data.holdings) {
+      const channelName = room.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      if (!existingChannels.some((channel) => channel.name === channelName)) {
+        await guild.channels.create({ name: channelName, type: ChannelType.GuildText });
+      }
+    }
+    // delete channels
+    for (const channel of existingChannels.values()) {
+      if (!data.holdings.some((room) => room.name.replace(/[^a-zA-Z0-9]/g, '-').toLocaleLowerCase() === channel.name)) {
+        await channel.delete();
+      }
+    }
+  } catch (err) {
+    console.error('Error managing channels: ', err);
+  }
+}
+
+export { getRoomPermission, insertChatRoomPermission, manageChannelsPermission };
