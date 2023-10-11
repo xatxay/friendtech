@@ -15,6 +15,8 @@ interface RoomPermission {
   holdings: Holding[];
 }
 
+const loginToken = process.env.LOGINTOKEN;
+
 async function getRoomPermission(loginToken: string): Promise<RoomPermission | null> {
   console.log('get room permission function');
   try {
@@ -65,17 +67,24 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
     const data = await getRoomPermission(loginToken);
     const guild = client.guilds.cache.get(serverId);
     if (!guild) throw new Error('server id not found');
-    const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
+    const chatRoomPrefix = 'ft-';
+    const existingChannels = guild.channels.cache.filter(
+      (channel) => channel.type === ChannelType.GuildText && channel.name.startsWith(chatRoomPrefix),
+    );
     //create channel if not exists
     for (const room of data.holdings) {
-      const channelName = room.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      const channelName = chatRoomPrefix + room.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
       if (!existingChannels.some((channel) => channel.name === channelName)) {
         await guild.channels.create({ name: channelName, type: ChannelType.GuildText });
       }
     }
     // delete channels
     for (const channel of existingChannels.values()) {
-      if (!data.holdings.some((room) => room.name.replace(/[^a-zA-Z0-9]/g, '-').toLocaleLowerCase() === channel.name)) {
+      if (
+        !data.holdings.some(
+          (room) => chatRoomPrefix + room.name.replace(/[^a-zA-Z0-9]/g, '-').toLocaleLowerCase() === channel.name,
+        )
+      ) {
         await channel.delete();
       }
     }
@@ -84,4 +93,18 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
   }
 }
 
-export { getRoomPermission, insertChatRoomPermission, manageChannelsPermission };
+async function getWalletWithUsername(username: string): Promise<string | null> {
+  try {
+    const headers = {
+      Authorization: loginToken,
+    };
+    const response = await axios.get(`${process.env.SEARCHUSERAPI}${username}`, { headers });
+    const wallet = response.data.users[0].address;
+    return wallet;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+export { getRoomPermission, insertChatRoomPermission, manageChannelsPermission, getWalletWithUsername };

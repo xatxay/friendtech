@@ -1,9 +1,11 @@
 import { ActivityType, ChannelType, Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { getUserFromDb, init } from './getUserFromDb';
 import { getChatHistory, sendChatMessage } from '../chatroom/initalChatLoad';
+// import { getChatRoomIdPermission } from '@server/chatroom/discordWebhook';
+import { getChatRoomIdForDiscordChannel } from '@server/database/discordFtChatRoomSync';
 
 const discordToken = process.env.DISCORD;
-const chatRoomId = process.env.CHATROOMCHANNEL; //need to be dynamic
+// const chatRoomId = process.env.CHATROOMCHANNEL;
 export const tableName = {
   notification_channels: 'notification_channels',
   server_webhooks: 'server_webhooks',
@@ -31,14 +33,17 @@ client.once(Events.ClientReady, (c) => {
 
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
+  // const chatRoomId = await getChatRoomIdPermission(message.author.username);
+  // console.log('@@@ CHATROOMID: ', chatRoomId);
+  const chatRoomId = await getChatRoomIdForDiscordChannel(message.channel.id);
   if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
     console.log('Received message in channel: ', message.channel.id);
     console.log(`Message from ${message.author.username}: ${message.content}`);
   }
-  if (message.channel.id === chatRoomId) {
-    sendChatMessage(message);
+  if (chatRoomId && message.channel.id === chatRoomId) {
+    sendChatMessage(message, chatRoomId);
   }
 });
 

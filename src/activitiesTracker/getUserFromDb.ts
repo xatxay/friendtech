@@ -6,6 +6,8 @@ import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@ser
 import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
 import { manageChannelsPermission } from '@server/chatroom/roomPermission';
+import { getWalletWithUsername } from '@server/chatroom/roomPermission';
+import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
 
 export interface Message {
   content: string;
@@ -93,10 +95,13 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     const channelId = message.channel.id;
     const channelName = message.guild.name;
     const discordId = message.author.id;
+    const wallet = await getWalletWithUsername(username);
+    console.log('!Wallet: ', wallet);
     const jwtToken = await getJwtToken(discordId);
     console.log('server name: ', channelName);
-    await setupWebhookForServer(username, serverId, channelId);
+    await setupWebhookForServer(username, message.author.username, serverId, channelId);
     await manageChannelsPermission(jwtToken, serverId);
+    await insertDiscordFtChatroomName(channelId, channelName, wallet);
   }
   if (command === '!login') {
     const discordUsername = message.author.username;

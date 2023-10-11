@@ -90,13 +90,14 @@ export async function sendNewMessageNotification(message: string, channel_id: st
   }
 }
 
-export function sendChatMessage(message: Message): void {
+export function sendChatMessage(message: Message, chatRoomId: string): void {
   const ftMessage = {
     action: 'sendMessage',
     text: message.content,
     imagePaths: [],
-    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517', //MAKE THIS DYNAMIC
+    chatRoomId: chatRoomId, //MAKE THIS DYNAMIC
   };
+  // chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517'
   console.log('Discord message: ', message.content);
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(ftMessage));

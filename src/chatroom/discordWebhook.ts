@@ -2,7 +2,12 @@ import { client } from '@server/activitiesTracker/discordBot';
 import pool from '@server/database/newPool';
 import { TextChannel, WebhookClient } from 'discord.js';
 
-async function setupWebhookForServer(username: string, serverId: string, channelId: string): Promise<void> {
+async function setupWebhookForServer(
+  username: string,
+  discordUsername: string,
+  serverId: string,
+  channelId: string,
+): Promise<void> {
   const channel = client.channels.cache.get(channelId);
   if (channel instanceof TextChannel) {
     const webhookExist = await pool.query(`SELECT * FROM server_webhooks WHERE username = $1`, [username]);
@@ -13,8 +18,8 @@ async function setupWebhookForServer(username: string, serverId: string, channel
     const webhook = await channel.createWebhook({ name: 'Spidey Bot' });
     try {
       await pool.query(
-        `INSERT INTO server_webhooks (username, server_id, channel_id, webhook_id, webhook_token) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (username) DO UPDATE SET server_id = $2, channel_id = $3, webhook_id = $4, webhook_token = $5`,
-        [username, serverId, channelId, webhook.id, webhook.token],
+        `INSERT INTO server_webhooks (username, discord_username, server_id, channel_id, webhook_id, webhook_token) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (discord_username) DO UPDATE SET username = $2, server_id = $3, channel_id = $4, webhook_id = $5, webhook_token = $6`,
+        [username, discordUsername, serverId, channelId, webhook.id, webhook.token],
       );
     } catch (err) {
       console.error(err);
@@ -45,4 +50,17 @@ async function sendMessageToServer(message: string, twitterName: string, userPfp
   }
 }
 
-export { setupWebhookForServer, sendMessageToServer };
+async function getChatRoomIdPermission(discordUsername: string): Promise<string | void> {
+  try {
+    const result = await pool.query(`SELECT channel_id FROM server_webhooks WHERE discord_username = $1`, [
+      discordUsername,
+    ]);
+    if (result.rows && result.rows.length > 0) {
+      return result.rows[0].channel_id;
+    }
+  } catch (err) {
+    console.error('Failed selecting token: ', err);
+  }
+}
+
+export { setupWebhookForServer, sendMessageToServer, getChatRoomIdPermission };
