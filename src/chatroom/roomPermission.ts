@@ -18,7 +18,6 @@ interface RoomPermission {
 const loginToken = process.env.LOGINTOKEN;
 
 async function getRoomPermission(loginToken: string): Promise<RoomPermission | null> {
-  console.log('get room permission function');
   try {
     const headers = {
       Authorization: loginToken,

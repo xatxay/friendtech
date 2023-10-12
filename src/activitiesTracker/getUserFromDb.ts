@@ -7,7 +7,10 @@ import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
 import { manageChannelsPermission } from '@server/chatroom/roomPermission';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
-import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
+import { initalizeWebsocket } from '@server/chatroom/initalChatLoad';
+import { getChatHistory } from '@server/chatroom/initalChatLoad';
+
+// import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
 
 export interface Message {
   content: string;
@@ -99,9 +102,13 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     console.log('!Wallet: ', wallet);
     const jwtToken = await getJwtToken(discordId);
     console.log('server name: ', channelName);
-    await setupWebhookForServer(username, message.author.username, serverId, channelId);
+    await setupWebhookForServer(username, message.author.username, serverId, channelId, wallet);
     await manageChannelsPermission(jwtToken, serverId);
-    await insertDiscordFtChatroomName(channelId, channelName, wallet);
+    username
+      ? message.channel.send('You are set! :)')
+      : message.channel.send('Please enter your twitter username after !setchatroom');
+    // await insertDiscordFtChatroomName(channelId, channelName, wallet);
+    getChatHistory(channelId);
   }
   if (command === '!login') {
     const discordUsername = message.author.username;
@@ -110,6 +117,7 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     console.log('DM TOKEN: ', jwtToken);
     await insertChatRoomPermission(jwtToken);
     await insertJwtToken(discordUsername, discordId, jwtToken);
+    initalizeWebsocket(jwtToken); //function call
   }
 }
 export { getUserFromDb, init };

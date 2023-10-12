@@ -1,8 +1,9 @@
 import { ActivityType, ChannelType, Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { getUserFromDb, init } from './getUserFromDb';
-import { getChatHistory, sendChatMessage } from '../chatroom/initalChatLoad';
-// import { getChatRoomIdPermission } from '@server/chatroom/discordWebhook';
-import { getChatRoomIdForDiscordChannel } from '@server/database/discordFtChatRoomSync';
+import { sendChatMessage } from '../chatroom/initalChatLoad';
+import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
+import { getWalletWithUsername } from '@server/chatroom/roomPermission';
+// import { getChatRoomIdForDiscordChannel } from '@server/database/discordFtChatRoomSync';
 
 const discordToken = process.env.DISCORD;
 // const chatRoomId = process.env.CHATROOMCHANNEL;
@@ -28,22 +29,24 @@ client.once(Events.ClientReady, (c) => {
   console.log(`Let start tracking! ${c.user.tag}`);
   client.user.setActivity('https://twitter.com/IrregularIUP', { type: ActivityType.Playing });
   init(tableName.notification_channels);
-  getChatHistory();
 });
 
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
-  // const chatRoomId = await getChatRoomIdPermission(message.author.username);
-  // console.log('@@@ CHATROOMID: ', chatRoomId);
-  const chatRoomId = await getChatRoomIdForDiscordChannel(message.channel.id);
+  const username = await getUsernameFromWebhook(message.channel.id);
+  const channelId = await getChatRoomIdPermission(username);
+  // console.log('!!! username: ', username);
+  const wallet = await getWalletWithUsername(username);
+  // console.log('@@@ wallet: ', wallet);
   if (message.author.bot) return;
+  // const chatRoomId = await getChatRoomIdForDiscordChannel(message.channel.id);
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
-    console.log('Received message in channel: ', message.channel.id);
-    console.log(`Message from ${message.author.username}: ${message.content}`);
+    // console.log('Received message in channel: ', message.channel.id);
+    // console.log(`Message from ${message.author.username}: ${message.content}`);
   }
-  if (chatRoomId && message.channel.id === chatRoomId) {
-    sendChatMessage(message, chatRoomId);
+  if (wallet && message.channel.id === channelId) {
+    sendChatMessage(message, wallet);
   }
 });
 

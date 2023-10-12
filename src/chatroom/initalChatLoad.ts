@@ -14,10 +14,11 @@ export interface Message {
   };
 }
 
-export const ftWsEndpoint = process.env.WSENDPOINT; //GET JWT TOKEN FOR THE LINK
+// export const ftWsEndpoint = process.env.WSENDPOINT; //GET JWT TOKEN FOR THE LINK
 let ws: WebSocket; //declare type
 
-function initalizeWebsocket() {
+export const initalizeWebsocket = (jwtToken: string): void => {
+  const ftWsEndpoint = process.env.WSENDPOINT + jwtToken;
   ws = new WebSocket(ftWsEndpoint);
 
   //open connection
@@ -33,6 +34,7 @@ function initalizeWebsocket() {
       case 'chatMessageResponse': {
         //message response
         console.log('Reponse status: ', messageObj.status);
+        console.log({ messageObj });
         break;
       }
       case 'receivedMessage': {
@@ -42,14 +44,15 @@ function initalizeWebsocket() {
         const displayName = messageObj.twitterName;
         const twitterName = displayName.replace(/^"|"$/g, '');
         const userPfp = messageObj.twitterPfpUrl;
+        const wallet = messageObj.sendingUserId;
         console.log('!name: ', twitterName);
         if (messageObj.chatRoomId !== messageObj.sendingUserId) {
-          sendMessageToServer(receivedMessage, twitterName, userPfp);
+          sendMessageToServer(receivedMessage, twitterName, userPfp, wallet);
         }
         break;
       }
       case 'messages': {
-        console.log('Old messages: ');
+        // console.log('Old messages: ');
         // console.log('Old messages: ', messageObj.messages);
         break;
       }
@@ -67,15 +70,18 @@ function initalizeWebsocket() {
   ws.on('close', (code, reason) => {
     console.log(`Websocket closed with code: ${code}. Reason: ${reason.toString()}`);
     //attempt to reconnect
-    setTimeout(initalizeWebsocket, 1000);
+    setTimeout(() => {
+      console.log('ASDASDASD');
+      if (jwtToken) {
+        initalizeWebsocket(jwtToken);
+      }
+    }, 1000);
   });
-}
-
-initalizeWebsocket(); //function call
+};
 
 //heartbeat every 5 secs
 setInterval(() => {
-  if (ws.readyState === WebSocket.OPEN) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.ping(); //built in ping pong
   }
 }, 5000);
@@ -99,20 +105,21 @@ export function sendChatMessage(message: Message, chatRoomId: string): void {
   };
   // chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517'
   console.log('Discord message: ', message.content);
-  if (ws.readyState === WebSocket.OPEN) {
+  console.log({ wsReadyState: ws.readyState, websocketOpen: WebSocket.OPEN });
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(ftMessage));
   } else {
     console.error('Websocket is not open. Cant send message');
   }
 }
 
-export function getChatHistory(): void {
+export function getChatHistory(channelId: string): void {
   const chatHistoryRequest = {
     action: 'requestMessages',
-    chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517',
+    chatRoomId: channelId,
     pageStart: null,
   };
-  if (ws.readyState === WebSocket.OPEN) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(chatHistoryRequest));
   } else {
     console.error('Websocket is not open, cannot get chat history');
