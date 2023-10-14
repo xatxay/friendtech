@@ -3,6 +3,7 @@ import { getUserFromDb, init } from './getUserFromDb';
 import { sendChatMessage } from '../chatroom/initalChatLoad';
 import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
+// import { getJwtTokenWithUsername } from '@server/database/jwtDB';
 // import { getChatRoomIdForDiscordChannel } from '@server/database/discordFtChatRoomSync';
 
 const discordToken = process.env.DISCORD;
@@ -33,19 +34,19 @@ client.once(Events.ClientReady, (c) => {
 
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
-  const username = await getUsernameFromWebhook(message.channel.id);
-  const channelId = await getChatRoomIdPermission(username);
-  // console.log('!!! username: ', username);
-  const wallet = await getWalletWithUsername(username);
-  // console.log('@@@ wallet: ', wallet);
+  let defaultUserChannelId: string, wallet: string;
+  if (message.channel.type !== ChannelType.DM && !message.content.startsWith('!setchatroom')) {
+    const username = await getUsernameFromWebhook(message.channel.id);
+    wallet = await getWalletWithUsername(username);
+    defaultUserChannelId = await getChatRoomIdPermission(username);
+    console.log('DEFAULTCHANNELID: ', defaultUserChannelId);
+    console.log(username, wallet, '!!!!');
+  }
   if (message.author.bot) return;
-  // const chatRoomId = await getChatRoomIdForDiscordChannel(message.channel.id);
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
-    // console.log('Received message in channel: ', message.channel.id);
-    // console.log(`Message from ${message.author.username}: ${message.content}`);
   }
-  if (wallet && message.channel.id === channelId) {
+  if (wallet && message.channel.id === defaultUserChannelId) {
     sendChatMessage(message, wallet);
   }
 });

@@ -22,4 +22,17 @@ async function getJwtToken(discordId: string): Promise<string | null> {
   }
   return null;
 }
-export { insertJwtToken, getJwtToken };
+
+async function getJwtTokenWithUsername(discordUsername: string): Promise<string | null> {
+  try {
+    const result = await pool.query(`SELECT token FROM user_jwt WHERE discord_username = $1`, [discordUsername]);
+    if (result.rows.length > 0) {
+      return result.rows[0].token;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  return null;
+}
+
+export { insertJwtToken, getJwtToken, getJwtTokenWithUsername };

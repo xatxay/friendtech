@@ -1,7 +1,7 @@
 import pool from '@server/database/newPool';
 import { getUserWallet } from './FTScrape';
 import { setCronjob } from './FTScrape';
-import { setupWebhookForServer } from '@server/chatroom/discordWebhook';
+import { setupWebhookForServer, updateNewCreatedChannel } from '@server/chatroom/discordWebhook';
 import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@server/database/insertDB';
 import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
@@ -98,16 +98,19 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     const channelId = message.channel.id;
     const channelName = message.guild.name;
     const discordId = message.author.id;
-    const wallet = await getWalletWithUsername(username);
-    console.log('!Wallet: ', wallet);
+    const discordUsername = message.author.username;
     const jwtToken = await getJwtToken(discordId);
+    await insertChatRoomPermission(jwtToken, message.channel.id, serverId);
+    const wallet = await getWalletWithUsername(username);
     console.log('server name: ', channelName);
-    await setupWebhookForServer(username, message.author.username, serverId, channelId, wallet);
-    await manageChannelsPermission(jwtToken, serverId);
+    await setupWebhookForServer(username, discordUsername, serverId, channelId, wallet);
     username
       ? message.channel.send('You are set! :)')
       : message.channel.send('Please enter your twitter username after !setchatroom');
     // await insertDiscordFtChatroomName(channelId, channelName, wallet);
+    await updateNewCreatedChannel();
+    const newCreatedChannelid = await manageChannelsPermission(jwtToken, serverId, discordUsername);
+    console.log('setchatroom channelid: ', newCreatedChannelid);
     getChatHistory(channelId);
   }
   if (command === '!login') {
@@ -115,7 +118,6 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     const discordId = message.author.id;
     const jwtToken = args.join();
     console.log('DM TOKEN: ', jwtToken);
-    await insertChatRoomPermission(jwtToken);
     await insertJwtToken(discordUsername, discordId, jwtToken);
     initalizeWebsocket(jwtToken); //function call
   }

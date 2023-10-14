@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
-import { sendMessageToServer } from './discordWebhook';
+import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
 
 export interface Message {
   content: string;
@@ -27,7 +27,7 @@ export const initalizeWebsocket = (jwtToken: string): void => {
   });
 
   //when message is received
-  ws.on('message', (data) => {
+  ws.on('message', async (data) => {
     const messageString = data.toString('utf-8'); //turn buffer to string
     const messageObj = JSON.parse(messageString);
     switch (messageObj.type) {
@@ -44,10 +44,15 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const displayName = messageObj.twitterName;
         const twitterName = displayName.replace(/^"|"$/g, '');
         const userPfp = messageObj.twitterPfpUrl;
-        const wallet = messageObj.sendingUserId;
+        const chatRoomId = messageObj.chatRoomId;
+        const sendingUserId = messageObj.sendingUserId;
+        const defaultUserWallet = await getDefaultUserWallet();
+        console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
-        if (messageObj.chatRoomId !== messageObj.sendingUserId) {
-          sendMessageToServer(receivedMessage, twitterName, userPfp, wallet);
+        console.log('!chatRoomId: ', chatRoomId);
+        console.log('!sendingUserId :', sendingUserId);
+        if (sendingUserId !== defaultUserWallet) {
+          sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
         }
         break;
       }
@@ -71,7 +76,6 @@ export const initalizeWebsocket = (jwtToken: string): void => {
     console.log(`Websocket closed with code: ${code}. Reason: ${reason.toString()}`);
     //attempt to reconnect
     setTimeout(() => {
-      console.log('ASDASDASD');
       if (jwtToken) {
         initalizeWebsocket(jwtToken);
       }
@@ -105,7 +109,7 @@ export function sendChatMessage(message: Message, chatRoomId: string): void {
   };
   // chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517'
   console.log('Discord message: ', message.content);
-  console.log({ wsReadyState: ws.readyState, websocketOpen: WebSocket.OPEN });
+  // console.log({ wsReadyState: ws.readyState, websocketOpen: WebSocket.OPEN });
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(ftMessage));
   } else {
