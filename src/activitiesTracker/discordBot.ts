@@ -52,26 +52,3 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(discordToken);
-
-///////////////////////////////////////////////////////////////
-/*import { Client, Events, GatewayIntentBits } from 'discord.js';
-
-const discordToken = process.env.DISCORD;
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-client.once(Events.ClientReady, (c) => {
-  console.log(`Let start tracking! ${c.user.tag}`);
-});
-
-client.login(discordToken);
-
-async function sendNewTradeNotification(message: string): Promise<void> {
-  const channel = client.channels.cache.get(process.env.CHANNEL);
-  if (!channel) return console.error('channel not found');
-  if (channel.isTextBased()) {
-    channel.send(message);
-  }
-}
-
-export { sendNewTradeNotification };
-*/

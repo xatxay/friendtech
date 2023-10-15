@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
 import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
+// import { sendImage } from './sendingImage';
 
 export interface Message {
   content: string;
@@ -47,12 +48,19 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const chatRoomId = messageObj.chatRoomId;
         const sendingUserId = messageObj.sendingUserId;
         const defaultUserWallet = await getDefaultUserWallet();
+        const imageUrl = messageObj.imageUrls[0];
+        // const image = await sendImage(imageUrl);
         console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
         console.log('!chatRoomId: ', chatRoomId);
         console.log('!sendingUserId :', sendingUserId);
         if (sendingUserId !== defaultUserWallet) {
-          sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
+          if (receivedMessage) {
+            sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
+          }
+          if (imageUrl) {
+            sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
+          }
         }
         break;
       }
