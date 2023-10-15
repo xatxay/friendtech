@@ -36,18 +36,24 @@ client.once(Events.ClientReady, (c) => {
 client.on('messageCreate', async (message) => {
   let defaultUserChannelId: string, wallet: string;
   if (message.channel.type !== ChannelType.DM && !message.content.startsWith('!setchatroom')) {
+    const discordMessageId = message.id;
+    const originalDiscordMessageId = message.reference?.messageId;
     const username = await getUsernameFromWebhook(message.channel.id);
     wallet = await getWalletWithUsername(username);
     defaultUserChannelId = await getChatRoomIdPermission(username);
     console.log('DEFAULTCHANNELID: ', defaultUserChannelId);
     console.log(username, wallet, '!!!!');
+    console.log('DISCORDMESSAGEID: ', discordMessageId);
+    if (originalDiscordMessageId) {
+      console.log('originalDiscordMessageId: ', originalDiscordMessageId);
+    }
   }
   if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
   }
   if (wallet && message.channel.id === defaultUserChannelId) {
-    sendChatMessage(message, wallet);
+    sendChatMessage(message, wallet); //send message.id here
   }
 });
 

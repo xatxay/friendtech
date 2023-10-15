@@ -25,6 +25,7 @@ async function startServer() {
     createDb('chatRoomHolding.sql'),
     createDb('discordWebhook.sql'),
     createDb('jwtToken.sql'),
+    createDb('replyingMessages.sql'),
   ]);
   const app = createServer();
   const server = http.createServer(app).listen({ host, port }, () => {

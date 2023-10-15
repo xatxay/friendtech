@@ -49,11 +49,13 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const sendingUserId = messageObj.sendingUserId;
         const defaultUserWallet = await getDefaultUserWallet();
         const imageUrl = messageObj.imageUrls[0];
+        const { replyingToMessage } = messageObj;
         // const image = await sendImage(imageUrl);
         console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
         console.log('!chatRoomId: ', chatRoomId);
         console.log('!sendingUserId :', sendingUserId);
+        console.log('!replyingtomessage: ', replyingToMessage);
         if (sendingUserId !== defaultUserWallet) {
           if (receivedMessage) {
             sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
