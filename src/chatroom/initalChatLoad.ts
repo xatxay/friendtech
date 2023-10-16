@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
 import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
-import { insertReplyMessageNoDiscord } from '@server/database/replyingMessageDb';
+import { insertReplyMessageNoDiscord, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
 
 export interface Message {
   content: string;
@@ -13,6 +13,12 @@ export interface Message {
     id: string;
     send: (message: string) => void;
   };
+}
+
+interface ReplyingToMessage {
+  messageId: string | number;
+  text: string;
+  twitterName: string;
 }
 
 let ws: WebSocket; //declare type
@@ -38,9 +44,10 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         break;
       }
       case 'receivedMessage': {
+        let replyingToMessageId: string | number, receivedMessage: string;
         console.log('Message received: ', messageObj.text);
         const messageText = messageObj.text;
-        const receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
+        receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         const displayName = messageObj.twitterName;
         const twitterName = displayName.replace(/^"|"$/g, '');
         const userPfp = messageObj.twitterPfpUrl;
@@ -51,9 +58,10 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const messageId = messageObj.messageId;
         console.log('$$$: ', messageId);
         const { replyingToMessage } = messageObj;
-        const replyingToMessageId = replyingToMessage?.messageId;
+        if (replyingToMessage) {
+          receivedMessage = receiveMessageFormat(replyingToMessage, replyingToMessageId, receivedMessage, displayName);
+        }
         const replyingMessageSendingUserId = replyingToMessage?.sendingUserId;
-        console.log('replyingtomessageid: ', replyingToMessageId);
         // console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
         console.log('!chatRoomId: ', chatRoomId);
@@ -68,6 +76,7 @@ export const initalizeWebsocket = (jwtToken: string): void => {
             await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
           }
         }
+        await updateMessageAndDiscordId();
         break;
       }
       case 'messages': {
@@ -114,12 +123,13 @@ export async function sendNewMessageNotification(message: string, channel_id: st
   }
 }
 
-export function sendChatMessage(message: Message, chatRoomId: string): void {
+export function sendChatMessage(message: Message, chatRoomId: string, replyingToMessageId: number = null): void {
   const ftMessage = {
     action: 'sendMessage',
     text: message.content,
     imagePaths: [],
-    chatRoomId: chatRoomId, //MAKE THIS DYNAMIC
+    chatRoomId: chatRoomId,
+    replyingToMessageId: replyingToMessageId,
   };
   // chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517'
   console.log('Discord message: ', message.content);
@@ -142,4 +152,15 @@ export function getChatHistory(channelId: string): void {
   } else {
     console.error('Websocket is not open, cannot get chat history');
   }
+}
+
+function receiveMessageFormat(
+  replyingToMessage: ReplyingToMessage,
+  replyingToMessageId: string | number,
+  receivedMessage: string,
+  twitterName: string,
+): string {
+  replyingToMessageId = replyingToMessage.messageId;
+  console.log('replyingtomessageid: ', replyingToMessageId);
+  return (receivedMessage = `📥 ${replyingToMessage.twitterName}: ${replyingToMessage.text}\n📤 ${twitterName}: ${receivedMessage}`);
 }

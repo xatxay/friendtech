@@ -3,7 +3,7 @@ import { getUserFromDb, init } from './getUserFromDb';
 import { sendChatMessage } from '../chatroom/initalChatLoad';
 import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
-import { insertDiscordId, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
+import { insertDiscordId, updateMessageAndDiscordId, selectMessageId } from '@server/database/replyingMessageDb';
 
 const discordToken = process.env.DISCORD;
 export const tableName = {
@@ -33,7 +33,7 @@ client.once(Events.ClientReady, (c) => {
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
   const greeting = 'You are set! :)';
-  let defaultUserChannelId: string, wallet: string;
+  let defaultUserChannelId: string, wallet: string, messageId: null | number;
   if (
     message.channel.type !== ChannelType.DM &&
     !message.content.startsWith('!setchatroom') &&
@@ -48,6 +48,7 @@ client.on('messageCreate', async (message) => {
     console.log(username, wallet, '!!!!');
     console.log('DISCORDMESSAGEID: ', discordMessageId);
     if (originalDiscordMessageId) {
+      messageId = await selectMessageId(originalDiscordMessageId);
       console.log('originalDiscordMessageId: ', originalDiscordMessageId);
     }
     await insertDiscordId(discordMessageId, originalDiscordMessageId);
@@ -58,7 +59,7 @@ client.on('messageCreate', async (message) => {
     await getUserFromDb(message, tableName.notification_channels);
   }
   if (wallet && message.channel.id === defaultUserChannelId) {
-    sendChatMessage(message, wallet); //send message.id here
+    sendChatMessage(message, wallet, messageId); //send message.id here
   }
 });
 // originalDiscordMessageId = replyingToMessage.messageId

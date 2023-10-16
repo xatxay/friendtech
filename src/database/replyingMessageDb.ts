@@ -38,14 +38,19 @@ async function updateMessageAndDiscordId(): Promise<void> {
   }
 }
 
-async function selectJoinMessageId(): Promise<void> {
+async function selectMessageId(originalDiscordMessageId: string | number): Promise<number | null> {
   try {
-    await pool.query(
-      `SELECT * FROM replying_messages JOIN discord_message ON replying_messages.discord_reference_message_id = discord_message.discord_message_id`,
-    );
+    const result = await pool.query(`SELECT * FROM replying_messages WHERE discord_reference_message_id = $1`, [
+      originalDiscordMessageId,
+    ]);
+    if (result.rows && result.rows.length > 0) {
+      return result.rows[0].message_id;
+    }
+    return null;
   } catch (err) {
     console.error('Error selecting joined db: ', err);
+    return null;
   }
 }
 
-export { insertReplyMessageNoDiscord, insertDiscordId, updateMessageAndDiscordId, selectJoinMessageId };
+export { insertReplyMessageNoDiscord, insertDiscordId, updateMessageAndDiscordId, selectMessageId };
