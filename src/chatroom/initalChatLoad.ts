@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
 import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
-// import { sendImage } from './sendingImage';
+import { insertReplyMessageNoDiscord } from '@server/database/replyingMessageDb';
 
 export interface Message {
   content: string;
@@ -15,7 +15,6 @@ export interface Message {
   };
 }
 
-// export const ftWsEndpoint = process.env.WSENDPOINT; //GET JWT TOKEN FOR THE LINK
 let ws: WebSocket; //declare type
 
 export const initalizeWebsocket = (jwtToken: string): void => {
@@ -49,19 +48,24 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const sendingUserId = messageObj.sendingUserId;
         const defaultUserWallet = await getDefaultUserWallet();
         const imageUrl = messageObj.imageUrls[0];
+        const messageId = messageObj.messageId;
+        console.log('$$$: ', messageId);
         const { replyingToMessage } = messageObj;
-        // const image = await sendImage(imageUrl);
-        console.log('DUSERWALLET***: ', defaultUserWallet);
+        const replyingToMessageId = replyingToMessage?.messageId;
+        const replyingMessageSendingUserId = replyingToMessage?.sendingUserId;
+        console.log('replyingtomessageid: ', replyingToMessageId);
+        // console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
         console.log('!chatRoomId: ', chatRoomId);
         console.log('!sendingUserId :', sendingUserId);
         console.log('!replyingtomessage: ', replyingToMessage);
+        await insertReplyMessageNoDiscord(messageId, replyingToMessageId, replyingMessageSendingUserId, sendingUserId);
         if (sendingUserId !== defaultUserWallet) {
           if (receivedMessage) {
-            sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
+            await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
           }
           if (imageUrl) {
-            sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
+            await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
           }
         }
         break;

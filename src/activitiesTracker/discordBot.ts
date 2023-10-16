@@ -3,11 +3,9 @@ import { getUserFromDb, init } from './getUserFromDb';
 import { sendChatMessage } from '../chatroom/initalChatLoad';
 import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
-// import { getJwtTokenWithUsername } from '@server/database/jwtDB';
-// import { getChatRoomIdForDiscordChannel } from '@server/database/discordFtChatRoomSync';
+import { insertDiscordId, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
 
 const discordToken = process.env.DISCORD;
-// const chatRoomId = process.env.CHATROOMCHANNEL;
 export const tableName = {
   notification_channels: 'notification_channels',
   server_webhooks: 'server_webhooks',
@@ -34,8 +32,13 @@ client.once(Events.ClientReady, (c) => {
 
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
+  const greeting = 'You are set! :)';
   let defaultUserChannelId: string, wallet: string;
-  if (message.channel.type !== ChannelType.DM && !message.content.startsWith('!setchatroom')) {
+  if (
+    message.channel.type !== ChannelType.DM &&
+    !message.content.startsWith('!setchatroom') &&
+    !message.content.includes(greeting)
+  ) {
     const discordMessageId = message.id;
     const originalDiscordMessageId = message.reference?.messageId;
     const username = await getUsernameFromWebhook(message.channel.id);
@@ -47,6 +50,8 @@ client.on('messageCreate', async (message) => {
     if (originalDiscordMessageId) {
       console.log('originalDiscordMessageId: ', originalDiscordMessageId);
     }
+    await insertDiscordId(discordMessageId, originalDiscordMessageId);
+    await updateMessageAndDiscordId();
   }
   if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
@@ -56,5 +61,6 @@ client.on('messageCreate', async (message) => {
     sendChatMessage(message, wallet); //send message.id here
   }
 });
+// originalDiscordMessageId = replyingToMessage.messageId
 
 client.login(discordToken);

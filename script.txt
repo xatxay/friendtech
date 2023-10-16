@@ -3,3 +3,5 @@ DROP TABLE discord_ft_chatroom_sync;
 DROP TABLE notification_channels;
 DROP TABLE server_webhooks;
 DROP TABLE user_jwt;
+DROP TABLE replying_messages;
+DROP TABLE discord_message;
