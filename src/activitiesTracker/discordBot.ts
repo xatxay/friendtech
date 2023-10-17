@@ -4,6 +4,8 @@ import { sendChatMessage } from '../chatroom/initalChatLoad';
 import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { insertDiscordId, updateMessageAndDiscordId, selectMessageId } from '@server/database/replyingMessageDb';
+import { getJwtTokenWithUsername } from '@server/database/jwtDB';
+import { uploadImageSignedUrl } from '@server/chatroom/sendingImage';
 
 const discordToken = process.env.DISCORD;
 export const tableName = {
@@ -33,7 +35,13 @@ client.once(Events.ClientReady, (c) => {
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
   const greeting = 'You are set! :)';
-  let defaultUserChannelId: string, wallet: string, messageId: null | number;
+  let defaultUserChannelId: string,
+    wallet: string,
+    messageId: null | number,
+    jwtToken: string,
+    path: string[] = [],
+    contentType: string,
+    url: string;
   if (
     message.channel.type !== ChannelType.DM &&
     !message.content.startsWith('!setchatroom') &&
@@ -42,14 +50,24 @@ client.on('messageCreate', async (message) => {
     const discordMessageId = message.id;
     const originalDiscordMessageId = message.reference?.messageId;
     const username = await getUsernameFromWebhook(message.channel.id);
+    jwtToken = await getJwtTokenWithUsername(message.author.username);
     wallet = await getWalletWithUsername(username);
     defaultUserChannelId = await getChatRoomIdPermission(username);
-    console.log('DEFAULTCHANNELID: ', defaultUserChannelId);
+    console.log('defaultchannelid: ', defaultUserChannelId);
     console.log(username, wallet, '!!!!');
     console.log('DISCORDMESSAGEID: ', discordMessageId);
+    // console.log('jwtToken* : ', jwtToken);
     if (originalDiscordMessageId) {
       messageId = await selectMessageId(originalDiscordMessageId);
       console.log('originalDiscordMessageId: ', originalDiscordMessageId);
+    }
+    if (message.attachments) {
+      message.attachments.each(async (attachment) => {
+        url = attachment.url;
+        contentType = attachment.contentType;
+        // console.log('image url: ', url);
+        // console.log('content-type: ', contentType);
+      });
     }
     await insertDiscordId(discordMessageId, originalDiscordMessageId);
     await updateMessageAndDiscordId();
@@ -57,9 +75,14 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
-  }
-  if (wallet && message.channel.id === defaultUserChannelId) {
-    sendChatMessage(message, wallet, messageId); //send message.id here
+    if (wallet && message.channel.id === defaultUserChannelId) {
+      if (message.attachments.size > 0) {
+        path = [await uploadImageSignedUrl(wallet, jwtToken, url, contentType)];
+        sendChatMessage(message, wallet, messageId, path);
+      } else {
+        sendChatMessage(message, wallet, messageId, path);
+      }
+    }
   }
 });
 // originalDiscordMessageId = replyingToMessage.messageId

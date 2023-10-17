@@ -9,24 +9,9 @@ import { manageChannelsPermission } from '@server/chatroom/roomPermission';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { initalizeWebsocket } from '@server/chatroom/initalChatLoad';
 import { getChatHistory } from '@server/chatroom/initalChatLoad';
+import { Message } from '@server/chatroom/initalChatLoad';
 
 // import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
-
-export interface Message {
-  content: string;
-  guild: {
-    id: string;
-    name: string;
-  };
-  channel: {
-    id: string;
-    send: (message: string) => void;
-  };
-  author: {
-    username: string;
-    id: string;
-  };
-}
 
 async function init(tableName: string): Promise<void> {
   try {

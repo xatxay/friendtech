@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
 import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
 import { insertReplyMessageNoDiscord, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
+import { Attachment, Collection } from 'discord.js';
 
 export interface Message {
   content: string;
@@ -9,10 +10,15 @@ export interface Message {
     id: string;
     name: string;
   };
+  author: {
+    username: string;
+    id: string;
+  };
   channel: {
     id: string;
     send: (message: string) => void;
   };
+  attachments: Collection<string, Attachment>;
 }
 
 interface ReplyingToMessage {
@@ -123,11 +129,16 @@ export async function sendNewMessageNotification(message: string, channel_id: st
   }
 }
 
-export function sendChatMessage(message: Message, chatRoomId: string, replyingToMessageId: number = null): void {
+export function sendChatMessage(
+  message: Message,
+  chatRoomId: string,
+  replyingToMessageId: number = null,
+  path: string[] = [],
+): void {
   const ftMessage = {
     action: 'sendMessage',
     text: message.content,
-    imagePaths: [],
+    imagePaths: path,
     chatRoomId: chatRoomId,
     replyingToMessageId: replyingToMessageId,
   };
