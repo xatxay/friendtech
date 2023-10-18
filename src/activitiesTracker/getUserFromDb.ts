@@ -3,7 +3,7 @@ import { getUserWallet } from './FTScrape';
 import { setCronjob } from './FTScrape';
 import { setupWebhookForServer, updateNewCreatedChannel } from '@server/chatroom/discordWebhook';
 import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@server/database/insertDB';
-import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
+// import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
 import { manageChannelsPermission } from '@server/chatroom/roomPermission';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
@@ -85,7 +85,7 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     const discordId = message.author.id;
     const discordUsername = message.author.username;
     const jwtToken = await getJwtToken(discordId);
-    await insertChatRoomPermission(jwtToken, message.channel.id, serverId);
+    // await insertChatRoomPermission(jwtToken, message.channel.id, serverId);
     const wallet = await getWalletWithUsername(username);
     console.log('server name: ', channelName);
     await setupWebhookForServer(username, discordUsername, serverId, channelId, wallet);
@@ -94,7 +94,7 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
       : message.channel.send('Please enter your twitter username after !setchatroom');
     // await insertDiscordFtChatroomName(channelId, channelName, wallet);
     await updateNewCreatedChannel();
-    const newCreatedChannelid = await manageChannelsPermission(jwtToken, serverId, discordUsername);
+    const newCreatedChannelid = await manageChannelsPermission(jwtToken, serverId);
     console.log('setchatroom channelid: ', newCreatedChannelid);
     getChatHistory(channelId);
   }
