@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS server_webhooks (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE,
+    username VARCHAR(255) NOT NULL,
     discord_username VARCHAR(255) NOT NULL DEFAULT 'default_username',
     server_id VARCHAR(255) NOT NULL,
     channel_id VARCHAR(255) NOT NULL,

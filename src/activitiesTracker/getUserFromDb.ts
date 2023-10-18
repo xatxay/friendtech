@@ -1,7 +1,7 @@
 import pool from '@server/database/newPool';
 import { getUserWallet } from './FTScrape';
 import { setCronjob } from './FTScrape';
-import { setupWebhookForServer, updateNewCreatedChannel } from '@server/chatroom/discordWebhook';
+import { checkExistingWebhook, createWebhook, insertWebhookForServer } from '@server/chatroom/discordWebhook';
 import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@server/database/insertDB';
 // import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
@@ -10,6 +10,7 @@ import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { initalizeWebsocket } from '@server/chatroom/initalChatLoad';
 import { getChatHistory } from '@server/chatroom/initalChatLoad';
 import { Message } from '@server/chatroom/initalChatLoad';
+import { WebhookRow } from '@server/chatroom/discordWebhook';
 
 // import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
 
@@ -85,17 +86,17 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     const discordId = message.author.id;
     const discordUsername = message.author.username;
     const jwtToken = await getJwtToken(discordId);
-    // await insertChatRoomPermission(jwtToken, message.channel.id, serverId);
     const wallet = await getWalletWithUsername(username);
     console.log('server name: ', channelName);
-    await setupWebhookForServer(username, discordUsername, serverId, channelId, wallet);
+    const checkWebhookId: WebhookRow[] = await checkExistingWebhook(username);
+    if (checkWebhookId.length === 0) {
+      const webhook = await createWebhook(channelId);
+      await insertWebhookForServer(username, discordUsername, serverId, channelId, wallet, webhook);
+    }
     username
       ? message.channel.send('You are set! :)')
       : message.channel.send('Please enter your twitter username after !setchatroom');
-    // await insertDiscordFtChatroomName(channelId, channelName, wallet);
-    await updateNewCreatedChannel();
-    const newCreatedChannelid = await manageChannelsPermission(jwtToken, serverId);
-    console.log('setchatroom channelid: ', newCreatedChannelid);
+    await manageChannelsPermission(jwtToken, serverId);
     getChatHistory(channelId);
   }
   if (command === '!login') {

@@ -1,33 +1,43 @@
 import { client } from '@server/activitiesTracker/discordBot';
 import pool from '@server/database/newPool';
-import { TextChannel, WebhookClient } from 'discord.js';
+import { TextChannel, Webhook, WebhookClient } from 'discord.js';
 
-async function setupWebhookForServer(
+export interface WebhookRow {
+  webhook_id: string;
+  rowCount: number;
+}
+const createWebhook = async (channelId: string): Promise<Webhook | null> => {
+  try {
+    const channel = client.channels.cache.get(channelId);
+    if (channel instanceof TextChannel) {
+      const webhook = await channel.createWebhook({ name: 'Spidey Bot' });
+      return webhook;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error creating webhook: ', err);
+    return null;
+  }
+};
+
+async function insertWebhookForServer(
   username: string,
   discordUsername: string,
   serverId: string,
   channelId: string,
   wallet: string,
+  webhook: Webhook,
 ): Promise<void> {
-  const channel = client.channels.cache.get(channelId);
-  if (channel instanceof TextChannel) {
-    const webhookExist = await pool.query(`SELECT * FROM server_webhooks WHERE username = $1`, [username]);
-    if (webhookExist.rowCount > 0) {
-      console.log(`Webhook already exists for ${username}`);
-    }
-    const webhook = await channel.createWebhook({ name: 'Spidey Bot' });
-    try {
-      await pool.query(
-        `INSERT INTO server_webhooks (username, discord_username, server_id, channel_id, webhook_id, webhook_token, wallet) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (username) DO UPDATE SET discord_username = $2, server_id = $3, channel_id = $4, webhook_id = $5, webhook_token = $6, wallet = $7`,
-        [username, discordUsername, serverId, channelId, webhook.id, webhook.token, wallet],
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  } else {
-    console.error('Cannot create a webhook in this channel');
+  try {
+    await pool.query(
+      `INSERT INTO server_webhooks (username, discord_username, server_id, channel_id, webhook_id, webhook_token, wallet) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [username, discordUsername, serverId, channelId, webhook.id, webhook.token, wallet],
+    );
+  } catch (err) {
+    console.error(err);
   }
 }
+//ON CONFLICT (username) DO UPDATE SET discord_username = $2, server_id = $3, channel_id = $4, webhook_id = $5, webhook_token = $6, wallet = $7
 
 async function sendMessageToServer(
   message: string,
@@ -80,30 +90,6 @@ async function getUsernameFromWebhook(channelId: string): Promise<string | null>
   return null;
 }
 
-async function getUsernameWithDiscordUsername(discordUsername: string): Promise<string | null> {
-  try {
-    const result = await pool.query(`SELECT username FROM server_webhooks WHERE discord_username = $1`, [
-      discordUsername,
-    ]);
-    if (result.rows && result.rows.length > 0) {
-      return result.rows[0].username;
-    }
-  } catch (err) {
-    console.error(err);
-  }
-  return null;
-}
-
-async function updateNewCreatedChannel(): Promise<void> {
-  try {
-    await pool.query(
-      `INSERT INTO server_webhooks (username, server_id, channel_id, wallet) SELECT username, server_id, discord_channel_id, chat_room_id FROM chat_room_holdings ON CONFLICT (username) DO NOTHING`,
-    );
-  } catch (err) {
-    console.error('Error updating new created channel: ', err);
-  }
-}
-
 async function getDefaultUserWallet(): Promise<string | null> {
   try {
     const defaultUserWallet = await pool.query(`SELECT wallet FROM server_webhooks WHERE id = 1`);
@@ -117,12 +103,25 @@ async function getDefaultUserWallet(): Promise<string | null> {
   }
 }
 
+async function checkExistingWebhook(username: string): Promise<WebhookRow[] | null> {
+  try {
+    const resultId = await pool.query(`SELECT webhook_id FROM server_webhooks WHERE username = $1`, [username]);
+    const webhookId = resultId.rows;
+    return webhookId;
+  } catch (err) {
+    console.error('Error checking existing webhook ', err);
+    return null;
+  }
+}
+// const resultToken = await pool.query(`SELECT webhook_token FROM server_webhooks WHERE username = $1`, [username]);
+// const webhookToken = resultToken.rows;
+
 export {
-  setupWebhookForServer,
+  insertWebhookForServer,
   sendMessageToServer,
   getChatRoomIdPermission,
   getUsernameFromWebhook,
-  getUsernameWithDiscordUsername,
-  updateNewCreatedChannel,
   getDefaultUserWallet,
+  createWebhook,
+  checkExistingWebhook,
 };

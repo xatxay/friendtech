@@ -2,7 +2,7 @@ import axios from 'axios';
 import pool from '@server/database/newPool';
 import { client } from '@server/activitiesTracker/discordBot';
 import { ChannelType, TextChannel } from 'discord.js';
-// import { setupWebhookForServer } from './discordWebhook';
+import { createWebhook, insertWebhookForServer } from './discordWebhook';
 
 interface Holding {
   username: string;
@@ -65,10 +65,6 @@ async function insertChatRoomPermission(
   serverId: string,
 ): Promise<void> {
   try {
-    // console.log('INSRT: ', loginToken);
-    // const { holdings } = await getRoomPermission(loginToken);
-    // for (const holding of holdings) {
-    //   const { username, channel_name, chatRoomId } = holding;
     await pool.query(
       `INSERT INTO chat_room_holdings (username, channel_name, chat_room_id, discord_channel_id, server_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (username) DO UPDATE SET chat_room_id = $3, discord_channel_id = $4, server_id = $5`,
       [username, channel_name, chatRoomId, channelId, serverId],
@@ -79,29 +75,18 @@ async function insertChatRoomPermission(
   }
 }
 
-// async function updateChatroomPermissionId(channelId: string, username: string): Promise<void> {
-//   try {
-//     await pool.query(`UPDATE chat_room_holdings SET discord_channel_id =$1 WHERE username = $2 `, [
-//       channelId,
-//       username,
-//     ]);
-//   } catch (err) {
-//     console.error('Error updating the channelId ', err);
-//   }
-// }
-
-async function manageChannelsPermission(loginToken: string, serverId: string): Promise<Array<string> | null> {
+async function manageChannelsPermission(loginToken: string, serverId: string): Promise<void> {
   try {
-    const newCreatedChannelid = [],
-      existingChannelIdArray = [];
+    const newCreatedChannelid = [];
+    // existingChannelIdArray = [];
     const data = await getRoomPermission(loginToken);
     const guild = client.guilds.cache.get(serverId);
-    if (!guild) throw new Error('server id not found');
     const chatRoomPrefix = 'ft-';
     const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
     const chatRoomDelete = guild.channels.cache.filter(
       (channel) => channel.type === ChannelType.GuildText && channel.name.startsWith(chatRoomPrefix),
     );
+    if (!guild) throw new Error('server id not found');
     existingChannels.forEach((channel) => {
       console.log('!@#EXISTINGCHANNEL: ', channel.id, '| ', channel.name);
     });
@@ -118,18 +103,20 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
         .toLowerCase();
       const wallet = room.chatRoomId;
       const channelName = chatRoomPrefix + chatRoomName;
-      console.log('usernamewallet: ', username, 'asdsda: ', wallet);
-      const existingChannelId = await selectDiscordChannelId(wallet);
-      existingChannelIdArray.push(existingChannelId);
-      console.log('exisitingchannelididid: ', existingChannelIdArray);
       const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
+      const existingChannelId = allChatRoomId.map((channel) => channel.discord_channel_id);
+      const existingChannelIdSet = new Set(existingChannelId);
+      // existingChannelIdArray.push(existingChannelId);
+      console.log('exisitingchannelididid: ', existingChannelId);
+      console.log('usernamewallet: ', username, 'asdsda: ', wallet);
       console.log('allchatroomid: ', allChatRoomId);
-      //delete channel
+      //delete channels
       const deleteChannels = allChatRoomId
         .filter((channel) => {
-          return !existingChannelIdArray.includes(channel.discord_channel_id);
+          return !existingChannelId.includes(channel.discord_channel_id);
         })
         .map((chatRoom) => chatRoom.discord_channel_id);
+      console.log('DELETEEE: ', deleteChannels);
       const promises = Array.from(chatRoomDelete).map(async ([, channel]) => {
         if (deleteChannels.includes(channel.id)) {
           console.log(`Deleted channel ${channel.id}`);
@@ -138,7 +125,8 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
         }
       });
       await Promise.all(promises);
-      if (existingChannels.every((channel) => channel.id !== existingChannelId)) {
+      //create channels
+      if (existingChannels.every((channel) => !existingChannelIdSet.has(channel.id))) {
         const createChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildText,
@@ -146,12 +134,15 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
         if (createChannel instanceof TextChannel) {
           const discordServerId = createChannel.guildId;
           const discordChannelId = createChannel.id;
+          const webhook = await createWebhook(discordChannelId);
           newCreatedChannelid.push(discordChannelId);
+          await insertWebhookForServer(username, channelName, discordServerId, discordChannelId, wallet, webhook);
           await insertChatRoomPermission(username, channelName, wallet, discordChannelId, discordServerId);
+          console.log('Created channel: ', discordChannelId);
+          console.log('setchatroom channelid: ', newCreatedChannelid);
         }
       }
     }
-    return newCreatedChannelid;
   } catch (err) {
     console.error('Error managing channels: ', err);
     return null;
