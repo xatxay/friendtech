@@ -2,22 +2,8 @@ import axios from 'axios';
 import pool from '@server/database/newPool';
 import { client } from '@server/activitiesTracker/discordBot';
 import { ChannelType, TextChannel } from 'discord.js';
-import { createWebhook, insertWebhookForServer } from './discordWebhook';
-
-interface Holding {
-  username: string;
-  twitterNameNoEmoji: string;
-  balanceHolding: string;
-  balanceEthValue: string;
-  chatRoomId: string;
-  name: string;
-}
-interface RoomPermission {
-  holdings: Holding[];
-}
-interface DiscordChannelId {
-  discord_channel_id: string;
-}
+import { createWebhook, deleteWebhook, insertWebhookForServer } from './discordWebhook';
+import { RoomPermission, DiscordChannelId, WalletRow } from '@server/database/interface';
 
 const loginTokenWallet = process.env.LOGINTOKEN; //for getWalletWithUsername
 
@@ -103,30 +89,39 @@ async function manageChannelsPermission(loginToken: string, serverId: string): P
         .toLowerCase();
       const wallet = room.chatRoomId;
       const channelName = chatRoomPrefix + chatRoomName;
+      const updateChannel = await selectDiscordChannelId(wallet);
       const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
       const existingChannelId = allChatRoomId.map((channel) => channel.discord_channel_id);
       const existingChannelIdSet = new Set(existingChannelId);
+      const checkExistChannel = await checkExistingChannel(wallet);
       // existingChannelIdArray.push(existingChannelId);
+      console.log('updatechannel::: ', updateChannel);
       console.log('exisitingchannelididid: ', existingChannelId);
       console.log('usernamewallet: ', username, 'asdsda: ', wallet);
       console.log('allchatroomid: ', allChatRoomId);
+      console.log('checkexistingchannel!: ', checkExistChannel.rowCount);
       //delete channels
       const deleteChannels = allChatRoomId
         .filter((channel) => {
-          return !existingChannelId.includes(channel.discord_channel_id);
+          if (updateChannel) {
+            return channel.discord_channel_id !== updateChannel;
+          }
+          return null;
         })
         .map((chatRoom) => chatRoom.discord_channel_id);
       console.log('DELETEEE: ', deleteChannels);
       const promises = Array.from(chatRoomDelete).map(async ([, channel]) => {
         if (deleteChannels.includes(channel.id)) {
           console.log(`Deleted channel ${channel.id}`);
-          deleteData(channel.id);
+          await deleteData(channel.id);
+          await deleteWebhook(channel.id);
           channel.delete();
         }
       });
       await Promise.all(promises);
       //create channels
-      if (existingChannels.every((channel) => !existingChannelIdSet.has(channel.id))) {
+      console.log('set: ', existingChannelIdSet);
+      if (checkExistChannel.rowCount === 0) {
         const createChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildText,
@@ -184,6 +179,16 @@ async function deleteData(channelId: string): Promise<void> {
     await pool.query(`DELETE FROM chat_room_holdings WHERE discord_channel_id = $1`, [channelId]);
   } catch (err) {
     console.error('Failed deleting row: ', err);
+  }
+}
+
+async function checkExistingChannel(Wallet: string): Promise<WalletRow | null> {
+  try {
+    const result = await pool.query(`SELECT channel_name FROM chat_room_holdings WHERE chat_room_id = $1`, [Wallet]);
+    return result;
+  } catch (err) {
+    console.error('Error checking exsiting channels: ', err);
+    return null;
   }
 }
 

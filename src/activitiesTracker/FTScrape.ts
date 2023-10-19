@@ -7,7 +7,6 @@ import { tableName } from './discordBot';
 const loginToken = process.env.LOGINTOKEN; //only used to log in but wallet is dynamic
 
 async function getUsername(table_name: string, channel_id: string): Promise<string> {
-  // console.log('THIS IS GET USERNAME: ', channel_id);
   try {
     const res = await pool.query(`SELECT username FROM ${table_name} WHERE channel_id = $1`, [channel_id]);
     if (res.rows.length > 0) {
@@ -22,7 +21,6 @@ async function getUsername(table_name: string, channel_id: string): Promise<stri
 }
 
 async function getUserWallet(channel_id: string): Promise<string> {
-  // console.log('channel id: ', channel_id);
   if (!channel_id) {
     throw new Error('No channel_id provided');
   }
@@ -64,9 +62,7 @@ async function getTradeData(channel_id: string) {
     const headers = {
       Authorization: loginToken,
     };
-    // console.log('fetching watchlist');
     const wallet = await getUserWallet(channel_id);
-    // console.log('wallet: ', wallet);
     const apiUrl = `${process.env.API}${wallet}`;
     const response = await axios.get(apiUrl, { headers });
     return response.data;
@@ -107,31 +103,3 @@ function setCronjob(channel_id: string): () => Promise<void> {
 }
 
 export { setCronjob, getUserWallet, getUsername };
-//| ${new Date(trade.createdAt).toLocaleString()}
-
-// async function setCronjob(channel_id: string): Promise<void> {
-//   let oldData = '';
-//   try {
-//     const data = await getTradeData(channel_id);
-//     const newData = data.events;
-//     const newDataString = JSON.stringify(newData);
-//     console.log('monitoring@@@@@@@@@@@@@@@@@@@@@@@@@');
-//     //loop and covert to string to compare
-//     for (const trade of newData) {
-//       const tradeString = JSON.stringify(trade);
-//       if (!oldData.includes(tradeString)) {
-//         const ethAmount = new Bignumber(trade.ethAmount).dividedBy(new Bignumber('1000000000000000000')).toFixed(3);
-//         const message = `${trade.isBuy ? '🟢' : '🔴'} [${trade.trader.username}](https://twitter.com/${
-//           trade.trader.username
-//         }) ${trade.isBuy ? 'bought' : 'sold'} [${trade.subject.name}](https://twitter.com/${
-//           trade.subject.username
-//         }) key | ETH: ${ethAmount}`;
-//         sendNewTradeNotification(message, channel_id);
-//         console.log(message);
-//       }
-//       oldData = newDataString;
-//     }
-//   } catch (err) {
-//     console.error(err);
-//   }
-// }

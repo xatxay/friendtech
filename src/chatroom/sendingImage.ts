@@ -1,9 +1,5 @@
 import axios from 'axios';
-
-interface ImageResponse {
-  signedUrl: string;
-  path: string;
-}
+import { ImageResponse } from '@server/database/interface';
 
 async function uploadImageApiCall(wallet: string, jwtToken: string): Promise<ImageResponse | null> {
   try {

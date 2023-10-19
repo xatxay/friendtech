@@ -1,29 +1,5 @@
-import { Message } from '@server/chatroom/initalChatLoad';
+import { InsertParams, UpdateParams, SelectParams } from './interface';
 import pool from './newPool';
-
-interface InsertParams {
-  tableName: string;
-  columns: string[];
-  values: (string | number)[];
-  conflictColumn: string;
-  updateColumn: string;
-  message: Message;
-}
-
-interface UpdateParams {
-  tableName: string;
-  setColumn: string;
-  setValue: string;
-  whereColumn: string;
-  whereValue: string;
-}
-
-interface SelectParams {
-  tableName: string;
-  columns: string[];
-  whereColumn: string;
-  whereValue: string;
-}
 
 async function insertDatabase(params: InsertParams): Promise<void> {
   const columnNames = params.columns.join(', ');

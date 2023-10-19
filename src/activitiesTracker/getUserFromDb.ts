@@ -3,14 +3,12 @@ import { getUserWallet } from './FTScrape';
 import { setCronjob } from './FTScrape';
 import { checkExistingWebhook, createWebhook, insertWebhookForServer } from '@server/chatroom/discordWebhook';
 import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@server/database/insertDB';
-// import { insertChatRoomPermission } from '@server/chatroom/roomPermission';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
 import { manageChannelsPermission } from '@server/chatroom/roomPermission';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { initalizeWebsocket } from '@server/chatroom/initalChatLoad';
 import { getChatHistory } from '@server/chatroom/initalChatLoad';
-import { Message } from '@server/chatroom/initalChatLoad';
-import { WebhookRow } from '@server/chatroom/discordWebhook';
+import { Message, WebhookRow } from '@server/database/interface';
 
 // import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
 

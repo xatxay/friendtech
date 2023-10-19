@@ -2,30 +2,7 @@ import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
 import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
 import { insertReplyMessageNoDiscord, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
-import { Attachment, Collection } from 'discord.js';
-
-export interface Message {
-  content: string;
-  guild: {
-    id: string;
-    name: string;
-  };
-  author: {
-    username: string;
-    id: string;
-  };
-  channel: {
-    id: string;
-    send: (message: string) => void;
-  };
-  attachments: Collection<string, Attachment>;
-}
-
-interface ReplyingToMessage {
-  messageId: string | number;
-  text: string;
-  twitterName: string;
-}
+import { Message, ReplyingToMessage } from '@server/database/interface';
 
 let ws: WebSocket; //declare type
 

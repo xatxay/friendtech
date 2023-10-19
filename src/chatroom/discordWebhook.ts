@@ -1,11 +1,8 @@
 import { client } from '@server/activitiesTracker/discordBot';
 import pool from '@server/database/newPool';
 import { TextChannel, Webhook, WebhookClient } from 'discord.js';
+import { WebhookRow } from '@server/database/interface';
 
-export interface WebhookRow {
-  webhook_id: string;
-  rowCount: number;
-}
 const createWebhook = async (channelId: string): Promise<Webhook | null> => {
   try {
     const channel = client.channels.cache.get(channelId);
@@ -37,7 +34,6 @@ async function insertWebhookForServer(
     console.error(err);
   }
 }
-//ON CONFLICT (username) DO UPDATE SET discord_username = $2, server_id = $3, channel_id = $4, webhook_id = $5, webhook_token = $6, wallet = $7
 
 async function sendMessageToServer(
   message: string,
@@ -113,8 +109,14 @@ async function checkExistingWebhook(username: string): Promise<WebhookRow[] | nu
     return null;
   }
 }
-// const resultToken = await pool.query(`SELECT webhook_token FROM server_webhooks WHERE username = $1`, [username]);
-// const webhookToken = resultToken.rows;
+
+async function deleteWebhook(channelId: string): Promise<void> {
+  try {
+    await pool.query(`DELETE FROM server_webhooks WHERE channel_id = $1`, [channelId]);
+  } catch (err) {
+    console.error('Failed deleting channel: ', err);
+  }
+}
 
 export {
   insertWebhookForServer,
@@ -124,4 +126,5 @@ export {
   getDefaultUserWallet,
   createWebhook,
   checkExistingWebhook,
+  deleteWebhook,
 };
