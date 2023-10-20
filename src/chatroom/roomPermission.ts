@@ -22,9 +22,6 @@ async function getRoomPermission(loginToken: string): Promise<RoomPermission | n
         /([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g,
         '',
       );
-      // console.log(
-      //   `ROOM PERMISSION: \n username: ${username} | twitter name: ${twitterName} | holding: ${balanceHolding} | eth value: ${balanceEthValue}`,
-      // );
       chatroomHolding.push({
         username,
         twitterNameNoEmoji,
@@ -63,81 +60,82 @@ async function insertChatRoomPermission(
 
 async function manageChannelsPermission(loginToken: string, serverId: string): Promise<void> {
   try {
-    const newCreatedChannelid = [];
-    // existingChannelIdArray = [];
-    const data = await getRoomPermission(loginToken);
-    const guild = client.guilds.cache.get(serverId);
-    const chatRoomPrefix = 'ft-';
-    const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
-    const chatRoomDelete = guild.channels.cache.filter(
-      (channel) => channel.type === ChannelType.GuildText && channel.name.startsWith(chatRoomPrefix),
-    );
-    if (!guild) throw new Error('server id not found');
-    existingChannels.forEach((channel) => {
-      console.log('!@#EXISTINGCHANNEL: ', channel.id, '| ', channel.name);
-    });
-    chatRoomDelete.forEach((channel) => {
-      console.log('!@#DELETECHANNEL: ', channel.id, '| ', channel.name);
-    });
-    //create channel if not exists
-    for (const room of data.holdings) {
-      const username = room.username;
-      const chatRoomName = room.name
-        .trim()
-        .replace(/([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g, '')
-        .replace(/[^a-zA-Z0-9]/g, '-')
-        .toLowerCase();
-      const wallet = room.chatRoomId;
-      const channelName = chatRoomPrefix + chatRoomName;
-      const updateChannel = await selectDiscordChannelId(wallet);
-      const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
-      const existingChannelId = allChatRoomId.map((channel) => channel.discord_channel_id);
-      const existingChannelIdSet = new Set(existingChannelId);
-      const checkExistChannel = await checkExistingChannel(wallet);
-      // existingChannelIdArray.push(existingChannelId);
-      console.log('updatechannel::: ', updateChannel);
-      console.log('exisitingchannelididid: ', existingChannelId);
-      console.log('usernamewallet: ', username, 'asdsda: ', wallet);
-      console.log('allchatroomid: ', allChatRoomId);
-      console.log('checkexistingchannel!: ', checkExistChannel.rowCount);
-      //delete channels
-      const deleteChannels = allChatRoomId
-        .filter((channel) => {
-          if (updateChannel) {
-            return channel.discord_channel_id !== updateChannel;
-          }
-          return null;
-        })
-        .map((chatRoom) => chatRoom.discord_channel_id);
-      console.log('DELETEEE: ', deleteChannels);
-      const promises = Array.from(chatRoomDelete).map(async ([, channel]) => {
-        if (deleteChannels.includes(channel.id)) {
-          console.log(`Deleted channel ${channel.id}`);
-          await deleteData(channel.id);
-          await deleteWebhook(channel.id);
-          channel.delete();
-        }
+    let data = await getRoomPermission(loginToken);
+    console.log('first data: ', data.holdings);
+    setInterval(async () => {
+      data = await getRoomPermission(loginToken);
+      console.log('everyInterval: ', data.holdings);
+
+      const guild = client.guilds.cache.get(serverId);
+      const chatRoomPrefix = 'ft-';
+      const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
+      const chatRoomDelete = guild.channels.cache.filter(
+        (channel) => channel.type === ChannelType.GuildText && channel.name.startsWith(chatRoomPrefix),
+      );
+      if (!guild) throw new Error('server id not found');
+      existingChannels.forEach((channel) => {
+        console.log('!@#EXISTINGCHANNEL: ', channel.id, '| ', channel.name);
       });
-      await Promise.all(promises);
-      //create channels
-      console.log('set: ', existingChannelIdSet);
-      if (checkExistChannel.rowCount === 0) {
-        const createChannel = await guild.channels.create({
-          name: channelName,
-          type: ChannelType.GuildText,
+      chatRoomDelete.forEach((channel) => {
+        console.log('!@#DELETECHANNEL: ', channel.id, '| ', channel.name);
+      });
+      //create channel if not exists
+      for (const room of data.holdings) {
+        const username = room.username;
+        const chatRoomName = room.name
+          .trim()
+          .replace(/([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g, '')
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .toLowerCase();
+        const wallet = room.chatRoomId;
+        const channelName = chatRoomPrefix + chatRoomName;
+        const updateChannel = await selectDiscordChannelId(wallet);
+        const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
+        const existingChannelId = allChatRoomId.map((channel) => channel.discord_channel_id);
+        const existingChannelIdSet = new Set(existingChannelId);
+        const checkExistChannel = await checkExistingChannel(wallet);
+        console.log('updatechannel::: ', updateChannel);
+        console.log('exisitingchannelididid: ', existingChannelId);
+        console.log('usernamewallet: ', username, 'asdsda: ', wallet);
+        console.log('allchatroomid: ', allChatRoomId);
+        console.log('checkexistingchannel!: ', checkExistChannel.rowCount);
+        //delete channels
+        const deleteChannels = allChatRoomId
+          .filter((channel) => {
+            if (updateChannel) {
+              return channel.discord_channel_id !== updateChannel;
+            }
+            return null;
+          })
+          .map((chatRoom) => chatRoom.discord_channel_id);
+        console.log('DELETEEE: ', deleteChannels);
+        const promises = Array.from(chatRoomDelete).map(async ([, channel]) => {
+          if (deleteChannels.includes(channel.id)) {
+            console.log(`Deleted channel ${channel.id}`);
+            await deleteData(channel.id);
+            await deleteWebhook(channel.id);
+            channel.delete();
+          }
         });
-        if (createChannel instanceof TextChannel) {
-          const discordServerId = createChannel.guildId;
-          const discordChannelId = createChannel.id;
-          const webhook = await createWebhook(discordChannelId);
-          newCreatedChannelid.push(discordChannelId);
-          await insertWebhookForServer(username, channelName, discordServerId, discordChannelId, wallet, webhook);
-          await insertChatRoomPermission(username, channelName, wallet, discordChannelId, discordServerId);
-          console.log('Created channel: ', discordChannelId);
-          console.log('setchatroom channelid: ', newCreatedChannelid);
+        await Promise.all(promises);
+        //create channels
+        console.log('set: ', existingChannelIdSet);
+        if (checkExistChannel.rowCount === 0) {
+          const createChannel = await guild.channels.create({
+            name: channelName,
+            type: ChannelType.GuildText,
+          });
+          if (createChannel instanceof TextChannel) {
+            const discordServerId = createChannel.guildId;
+            const discordChannelId = createChannel.id;
+            const webhook = await createWebhook(discordChannelId);
+            await insertWebhookForServer(username, channelName, discordServerId, discordChannelId, wallet, webhook);
+            await insertChatRoomPermission(username, channelName, wallet, discordChannelId, discordServerId);
+            console.log('Created channel: ', discordChannelId);
+          }
         }
       }
-    }
+    }, 50000);
   } catch (err) {
     console.error('Error managing channels: ', err);
     return null;

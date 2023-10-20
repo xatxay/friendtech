@@ -19,18 +19,21 @@ export const initalizeWebsocket = (jwtToken: string): void => {
   ws.on('message', async (data) => {
     const messageString = data.toString('utf-8'); //turn buffer to string
     const messageObj = JSON.parse(messageString);
+    let replyingToMessageId: string | number, receivedMessage: string;
     switch (messageObj.type) {
       case 'chatMessageResponse': {
         //message response
         console.log('Reponse status: ', messageObj.status);
         console.log({ messageObj });
+        if (messageObj.status === 'error') {
+          receivedMessage = messageObj.message;
+          console.log('error alert: ', receivedMessage);
+        }
         break;
       }
       case 'receivedMessage': {
-        let replyingToMessageId: string | number, receivedMessage: string;
         console.log('Message received: ', messageObj.text);
         const messageText = messageObj.text;
-        receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         const displayName = messageObj.twitterName;
         const twitterName = displayName.replace(/^"|"$/g, '');
         const userPfp = messageObj.twitterPfpUrl;
@@ -39,20 +42,20 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         const defaultUserWallet = await getDefaultUserWallet();
         const imageUrl = messageObj.imageUrls[0];
         const messageId = messageObj.messageId;
+        receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         console.log('$$$: ', messageId);
         const { replyingToMessage } = messageObj;
         if (replyingToMessage) {
           receivedMessage = receiveMessageFormat(replyingToMessage, replyingToMessageId, receivedMessage, displayName);
         }
         const replyingMessageSendingUserId = replyingToMessage?.sendingUserId;
-        // console.log('DUSERWALLET***: ', defaultUserWallet);
         console.log('!name: ', twitterName);
         console.log('!chatRoomId: ', chatRoomId);
         console.log('!sendingUserId :', sendingUserId);
         console.log('!replyingtomessage: ', replyingToMessage);
         await insertReplyMessageNoDiscord(messageId, replyingToMessageId, replyingMessageSendingUserId, sendingUserId);
         if (sendingUserId !== defaultUserWallet) {
-          if (receivedMessage) {
+          if (receivedMessage || messageObj.status === 'error') {
             await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
           }
           if (imageUrl) {
@@ -75,7 +78,10 @@ export const initalizeWebsocket = (jwtToken: string): void => {
   });
 
   //Handle errors
-  ws.on('error', console.error);
+  ws.on('error', (error) => {
+    console.log('error connecting to socket: ', error);
+    return;
+  });
 
   //see why websocket connection closes and reconnect
   ws.on('close', (code, reason) => {
@@ -119,9 +125,7 @@ export function sendChatMessage(
     chatRoomId: chatRoomId,
     replyingToMessageId: replyingToMessageId,
   };
-  // chatRoomId: '0x5399b71c0529d994e5c047b9535302d5f288d517'
   console.log('Discord message: ', message.content);
-  // console.log({ wsReadyState: ws.readyState, websocketOpen: WebSocket.OPEN });
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(ftMessage));
   } else {
@@ -150,5 +154,5 @@ function receiveMessageFormat(
 ): string {
   replyingToMessageId = replyingToMessage.messageId;
   console.log('replyingtomessageid: ', replyingToMessageId);
-  return (receivedMessage = `📥 ${replyingToMessage.twitterName}: ${replyingToMessage.text}\n📤 ${twitterName}: ${receivedMessage}`);
+  return (receivedMessage = `📥 ${replyingToMessage.twitterName}: ${replyingToMessage.text}\n\n📤 ${twitterName}: ${receivedMessage}`);
 }

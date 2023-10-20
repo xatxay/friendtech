@@ -3,7 +3,7 @@ import pool from './newPool';
 async function insertJwtToken(discordUsername: string, discordId: string | number, token: string): Promise<void> {
   try {
     await pool.query(
-      `INSERT INTO user_jwt (discord_username, discord_id, token) VALUES ($1, $2, $3) ON CONFLICT (token) DO UPDATE SET discord_username = $1, discord_id = $2`,
+      `INSERT INTO user_jwt (discord_username, discord_id, token) VALUES ($1, $2, $3) ON CONFLICT (discord_username) DO UPDATE SET discord_id = $2, token = $3`,
       [discordUsername, discordId, token],
     );
   } catch (err) {

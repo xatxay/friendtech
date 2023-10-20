@@ -56,7 +56,6 @@ client.on('messageCreate', async (message) => {
     console.log('defaultchannelid: ', defaultUserChannelId);
     console.log(username, wallet, '!!!!');
     console.log('DISCORDMESSAGEID: ', discordMessageId);
-    // console.log('jwtToken* : ', jwtToken);
     if (originalDiscordMessageId) {
       messageId = await selectMessageId(originalDiscordMessageId);
       console.log('originalDiscordMessageId: ', originalDiscordMessageId);
@@ -65,8 +64,6 @@ client.on('messageCreate', async (message) => {
       message.attachments.each(async (attachment) => {
         url = attachment.url;
         contentType = attachment.contentType;
-        // console.log('image url: ', url);
-        // console.log('content-type: ', contentType);
       });
     }
     await insertDiscordId(discordMessageId, originalDiscordMessageId);

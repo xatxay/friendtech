@@ -1,4 +1,4 @@
-import * as moduleAlias from 'module-alias';
+import moduleAlias from 'module-alias';
 import './chatroom/initalChatLoad';
 import createDb from './database/channelDB';
 import './activitiesTracker/FTScrape';
