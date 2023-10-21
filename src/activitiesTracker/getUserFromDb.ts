@@ -1,16 +1,15 @@
 import pool from '@server/database/newPool';
 import { getUserWallet } from './FTScrape';
 import { setCronjob } from './FTScrape';
-import { checkExistingWebhook, createWebhook, insertWebhookForServer } from '@server/chatroom/discordWebhook';
+import { createWebhook, insertWebhookForServer } from '@server/chatroom/discordWebhook';
 import { InsertParams, UpdateParams, insertDatabase, updateDatabase } from '@server/database/insertDB';
 import { getJwtToken, insertJwtToken } from '@server/database/jwtDB';
 import { manageChannelsPermission } from '@server/chatroom/roomPermission';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { initalizeWebsocket } from '@server/chatroom/initalChatLoad';
 import { getChatHistory } from '@server/chatroom/initalChatLoad';
-import { Message, WebhookRow } from '@server/database/interface';
-
-// import { insertDiscordFtChatroomName } from '@server/database/discordFtChatRoomSync';
+import { Message } from '@server/database/interface';
+import { TextChannel, Webhook } from 'discord.js';
 
 async function init(tableName: string): Promise<void> {
   try {
@@ -63,13 +62,13 @@ async function insertUserDb(
 }
 
 async function getUserFromDb(message: Message, table: string): Promise<void | string> {
-  const args = message.content.trim().split(/ +/);
-  const command = args.shift().toLowerCase();
+  const args = message.content.trim().split(/ +/),
+    command = args.shift().toLowerCase();
   if (command === '!setnotifyhere') {
-    const username = args.join().toLowerCase();
-    const serverId = message.guild.id;
-    const channelId = message.channel.id;
-    const channelName = message.guild.name;
+    const username = args.join().toLowerCase(),
+      serverId = message.guild.id,
+      channelId = message.channel.id,
+      channelName = message.guild.name;
     console.log('server name: ', channelName);
     //get wallet address to insert into the database
     insertUserDb(table, username, channelName, serverId, channelId, message);
@@ -77,33 +76,50 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     setInterval(monitor, 15000);
   }
   if (command === '!setchatroom') {
-    const username = args.join().toLowerCase();
-    const serverId = message.guild.id;
-    const channelId = message.channel.id;
-    const channelName = message.guild.name;
-    const discordId = message.author.id;
-    const discordUsername = message.author.username;
-    const jwtToken = await getJwtToken(discordId);
-    const wallet = await getWalletWithUsername(username);
+    const username = args.join().toLowerCase(),
+      serverId = message.guild.id,
+      channelId = message.channel.id,
+      channelName = message.guild.name,
+      discordId = message.author.id,
+      discordUsername = message.author.username,
+      jwtToken = await getJwtToken(discordId),
+      wallet = await getWalletWithUsername(username);
     console.log('server name: ', channelName);
-    const checkWebhookId: WebhookRow[] = await checkExistingWebhook(username);
-    if (checkWebhookId.length === 0) {
-      const webhook = await createWebhook(channelId);
-      await insertWebhookForServer(username, discordUsername, serverId, channelId, wallet, webhook);
+    if (message.channel instanceof TextChannel) {
+      let webhook: Webhook;
+      const existingWebhooks = await message.channel.fetchWebhooks();
+      webhook = existingWebhooks.first();
+      if (webhook) {
+        await insertWebhookForServer(username, discordUsername, serverId, channelId, wallet, webhook);
+      } else {
+        webhook = await createWebhook(channelId);
+        await insertWebhookForServer(username, discordUsername, serverId, channelId, wallet, webhook);
+      }
     }
     username
       ? message.channel.send('You are set! :)')
       : message.channel.send('Please enter your twitter username after !setchatroom');
-    await manageChannelsPermission(jwtToken, serverId);
+    await manageChannelsPermission(jwtToken, serverId, wallet);
+    // setInterval(async () => await manageChannelsPermission(jwtToken, serverId), 15000);
     getChatHistory(channelId);
+    initalizeWebsocket(jwtToken, serverId); //function call
   }
   if (command === '!login') {
-    const discordUsername = message.author.username;
-    const discordId = message.author.id;
-    const jwtToken = args.join();
+    const discordUsername = message.author.username,
+      discordId = message.author.id,
+      jwtToken = args.join();
     console.log('DM TOKEN: ', jwtToken);
     await insertJwtToken(discordUsername, discordId, jwtToken);
-    initalizeWebsocket(jwtToken); //function call
   }
 }
+
+// async function checkExistingUser(discordId: string | number): Promise<number> {
+//   try {
+//     const result = await pool.query(`SELECT discord_id FROM user_jwt WHERE discord_id = $1`, [discordId]);
+//     return result.rowCount;
+//   } catch (err) {
+//     console.error('Failed checking existing user: ', err);
+//     return null;
+//   }
+// }
 export { getUserFromDb, init };

@@ -1,7 +1,7 @@
 import { ActivityType, ChannelType, Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { getUserFromDb, init } from './getUserFromDb';
 import { sendChatMessage } from '../chatroom/initalChatLoad';
-import { getChatRoomIdPermission, getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
+import { getUsernameFromWebhook } from '@server/chatroom/discordWebhook';
 import { getWalletWithUsername } from '@server/chatroom/roomPermission';
 import { insertDiscordId, updateMessageAndDiscordId, selectMessageId } from '@server/database/replyingMessageDb';
 import { getJwtTokenWithUsername } from '@server/database/jwtDB';
@@ -35,8 +35,7 @@ client.once(Events.ClientReady, (c) => {
 //trigger everytime an event occur
 client.on('messageCreate', async (message) => {
   const greeting = 'You are set! :)';
-  let defaultUserChannelId: string,
-    wallet: string,
+  let wallet: string,
     messageId: null | number,
     jwtToken: string,
     path: string[] = [],
@@ -49,11 +48,10 @@ client.on('messageCreate', async (message) => {
   ) {
     const discordMessageId = message.id;
     const originalDiscordMessageId = message.reference?.messageId;
-    const username = await getUsernameFromWebhook(message.channel.id);
+    const serverId = message.guild.id;
+    const username = await getUsernameFromWebhook(message.channel.id, serverId);
     jwtToken = await getJwtTokenWithUsername(message.author.username);
     wallet = await getWalletWithUsername(username);
-    defaultUserChannelId = await getChatRoomIdPermission(username);
-    console.log('defaultchannelid: ', defaultUserChannelId);
     console.log(username, wallet, '!!!!');
     console.log('DISCORDMESSAGEID: ', discordMessageId);
     if (originalDiscordMessageId) {
@@ -69,10 +67,10 @@ client.on('messageCreate', async (message) => {
     await insertDiscordId(discordMessageId, originalDiscordMessageId);
     await updateMessageAndDiscordId();
   }
-  if (message.author.bot) return;
+  // if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {
     await getUserFromDb(message, tableName.notification_channels);
-    if (wallet && message.channel.id === defaultUserChannelId) {
+    if (wallet) {
       if (message.attachments.size > 0) {
         path = [await uploadImageSignedUrl(wallet, jwtToken, url, contentType)];
         sendChatMessage(message, wallet, messageId, path);

@@ -1,7 +1,7 @@
 import { client } from '@server/activitiesTracker/discordBot';
 import pool from '@server/database/newPool';
 import { TextChannel, Webhook, WebhookClient } from 'discord.js';
-import { WebhookRow } from '@server/database/interface';
+import { WebhookData, WebhookRow } from '@server/database/interface';
 
 const createWebhook = async (channelId: string): Promise<Webhook | null> => {
   try {
@@ -35,47 +35,53 @@ async function insertWebhookForServer(
   }
 }
 
+async function selectWebhookData(wallet: string, serverId: string): Promise<WebhookData | null> {
+  try {
+    const result = await pool.query(
+      `SELECT webhook_id, webhook_token FROM server_webhooks WHERE wallet = $1 AND server_id = $2`,
+      [wallet, serverId],
+    );
+    console.log('#WEBHOOKDATA: ', result.rows);
+    if (result && result.rows.length > 0) {
+      return {
+        webhookId: result.rows[0].webhook_id,
+        webhookToken: result.rows[0].webhook_token,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error selecting webhook id&token: ', err);
+    return null;
+  }
+}
+
 async function sendMessageToServer(
   message: string,
   twitterName: string,
   userPfp: string,
   wallet: string,
+  serverId: string,
 ): Promise<void> {
-  const webhookData = await pool.query(`SELECT webhook_id, webhook_token FROM server_webhooks WHERE wallet = $1`, [
-    wallet,
-  ]);
-  console.log('#WEBHOOKDATA: ', webhookData.rows);
-  if (webhookData && webhookData.rows.length > 0) {
-    const webhook = new WebhookClient({
-      id: webhookData.rows[0].webhook_id,
-      token: webhookData.rows[0].webhook_token,
-    });
-    await webhook.send({
-      content: message,
-      username: twitterName,
-      avatarURL: userPfp,
-    });
-  } else {
-    console.error(`No webhook found`);
-  }
+  const result = await selectWebhookData(wallet, serverId);
+  console.log('sendmessage result: ', result);
+  const { webhookId, webhookToken } = result;
+  const webhook = new WebhookClient({
+    id: webhookId,
+    token: webhookToken,
+  });
+  await webhook.send({
+    content: message,
+    username: twitterName,
+    avatarURL: userPfp,
+  });
 }
 
-async function getChatRoomIdPermission(username: string): Promise<string | null> {
+async function getUsernameFromWebhook(channelId: string, serverId: string): Promise<string | null> {
   try {
-    const result = await pool.query(`SELECT channel_id FROM server_webhooks WHERE username = $1`, [username]);
-    if (result.rows && result.rows.length > 0) {
-      return result.rows[0].channel_id;
-    }
-  } catch (err) {
-    console.error('Failed selecting token: ', err);
-    return null;
-  }
-  return null;
-}
-
-async function getUsernameFromWebhook(channelId: string): Promise<string | null> {
-  try {
-    const result = await pool.query(`SELECT username FROM server_webhooks WHERE channel_id = $1`, [channelId]);
+    const result = await pool.query(`SELECT username FROM server_webhooks WHERE channel_id = $1 AND server_id = $2`, [
+      channelId,
+      serverId,
+    ]);
     if (result.rows && result.rows.length > 0) {
       return result.rows[0].username;
     }
@@ -121,7 +127,6 @@ async function deleteWebhook(channelId: string): Promise<void> {
 export {
   insertWebhookForServer,
   sendMessageToServer,
-  getChatRoomIdPermission,
   getUsernameFromWebhook,
   getDefaultUserWallet,
   createWebhook,

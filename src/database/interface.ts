@@ -18,6 +18,7 @@ export interface Message {
   channel: {
     id: string;
     send: (message: string) => void;
+    // fetchWebhooks: () => Promise<Collection<Snowflake, Webhook>>;
   };
   attachments: Collection<string, Attachment>;
 }
@@ -76,4 +77,9 @@ export interface SelectParams {
   columns: string[];
   whereColumn: string;
   whereValue: string;
+}
+
+export interface WebhookData {
+  webhookId: string;
+  webhookToken: string;
 }

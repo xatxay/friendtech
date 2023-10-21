@@ -6,7 +6,7 @@ import { Message, ReplyingToMessage } from '@server/database/interface';
 
 let ws: WebSocket; //declare type
 
-export const initalizeWebsocket = (jwtToken: string): void => {
+export const initalizeWebsocket = (jwtToken: string, serverId: string): void => {
   const ftWsEndpoint = process.env.WSENDPOINT + jwtToken;
   ws = new WebSocket(ftWsEndpoint);
 
@@ -33,18 +33,18 @@ export const initalizeWebsocket = (jwtToken: string): void => {
       }
       case 'receivedMessage': {
         console.log('Message received: ', messageObj.text);
-        const messageText = messageObj.text;
-        const displayName = messageObj.twitterName;
-        const twitterName = displayName.replace(/^"|"$/g, '');
-        const userPfp = messageObj.twitterPfpUrl;
-        const chatRoomId = messageObj.chatRoomId;
-        const sendingUserId = messageObj.sendingUserId;
-        const defaultUserWallet = await getDefaultUserWallet();
-        const imageUrl = messageObj.imageUrls[0];
-        const messageId = messageObj.messageId;
+        const messageText = messageObj.text,
+          displayName = messageObj.twitterName,
+          twitterName = displayName.replace(/^"|"$/g, ''),
+          userPfp = messageObj.twitterPfpUrl,
+          chatRoomId = messageObj.chatRoomId,
+          sendingUserId = messageObj.sendingUserId,
+          defaultUserWallet = await getDefaultUserWallet(),
+          imageUrl = messageObj.imageUrls[0],
+          messageId = messageObj.messageId,
+          { replyingToMessage } = messageObj;
         receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         console.log('$$$: ', messageId);
-        const { replyingToMessage } = messageObj;
         if (replyingToMessage) {
           receivedMessage = receiveMessageFormat(replyingToMessage, replyingToMessageId, receivedMessage, displayName);
         }
@@ -56,10 +56,10 @@ export const initalizeWebsocket = (jwtToken: string): void => {
         await insertReplyMessageNoDiscord(messageId, replyingToMessageId, replyingMessageSendingUserId, sendingUserId);
         if (sendingUserId !== defaultUserWallet) {
           if (receivedMessage || messageObj.status === 'error') {
-            await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
+            await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId, serverId);
           }
           if (imageUrl) {
-            await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
+            await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId, serverId);
           }
         }
         await updateMessageAndDiscordId();
@@ -89,7 +89,7 @@ export const initalizeWebsocket = (jwtToken: string): void => {
     //attempt to reconnect
     setTimeout(() => {
       if (jwtToken) {
-        initalizeWebsocket(jwtToken);
+        initalizeWebsocket(jwtToken, serverId);
       }
     }, 1000);
   });
