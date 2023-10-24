@@ -102,6 +102,7 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
     await manageChannelsPermission(jwtToken, serverId, wallet);
     // setInterval(async () => await manageChannelsPermission(jwtToken, serverId), 15000);
     getChatHistory(channelId);
+    // closeWebsocket();
     initalizeWebsocket(jwtToken, serverId); //function call
   }
   if (command === '!login') {
@@ -113,13 +114,4 @@ async function getUserFromDb(message: Message, table: string): Promise<void | st
   }
 }
 
-// async function checkExistingUser(discordId: string | number): Promise<number> {
-//   try {
-//     const result = await pool.query(`SELECT discord_id FROM user_jwt WHERE discord_id = $1`, [discordId]);
-//     return result.rowCount;
-//   } catch (err) {
-//     console.error('Failed checking existing user: ', err);
-//     return null;
-//   }
-// }
 export { getUserFromDb, init };

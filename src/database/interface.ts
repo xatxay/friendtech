@@ -80,6 +80,6 @@ export interface SelectParams {
 }
 
 export interface WebhookData {
-  webhookId: string;
-  webhookToken: string;
+  webhook_id: string;
+  webhook_token: string;
 }

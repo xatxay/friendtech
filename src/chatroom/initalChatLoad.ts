@@ -1,13 +1,17 @@
 import WebSocket from 'ws';
 import { client } from '../activitiesTracker/discordBot';
-import { getDefaultUserWallet, sendMessageToServer } from './discordWebhook';
-import { insertReplyMessageNoDiscord, updateMessageAndDiscordId } from '@server/database/replyingMessageDb';
+import { sendMessageToServer } from './discordWebhook';
+import { insertReplyMessageNoDiscord } from '@server/database/replyingMessageDb';
 import { Message, ReplyingToMessage } from '@server/database/interface';
 
 let ws: WebSocket; //declare type
+const messageCache: Set<string> = new Set();
+const wsDict: { [key: string]: WebSocket } = {};
 
 export const initalizeWebsocket = (jwtToken: string, serverId: string): void => {
+  console.log('@@SERVERID: ', serverId);
   const ftWsEndpoint = process.env.WSENDPOINT + jwtToken;
+  console.log('WSENDPOINT: ', ftWsEndpoint);
   ws = new WebSocket(ftWsEndpoint);
 
   //open connection
@@ -32,6 +36,7 @@ export const initalizeWebsocket = (jwtToken: string, serverId: string): void => 
         break;
       }
       case 'receivedMessage': {
+        console.log('ReceivedMessage format: ', messageObj); //check
         console.log('Message received: ', messageObj.text);
         const messageText = messageObj.text,
           displayName = messageObj.twitterName,
@@ -39,30 +44,27 @@ export const initalizeWebsocket = (jwtToken: string, serverId: string): void => 
           userPfp = messageObj.twitterPfpUrl,
           chatRoomId = messageObj.chatRoomId,
           sendingUserId = messageObj.sendingUserId,
-          defaultUserWallet = await getDefaultUserWallet(),
+          // defaultUserWallet = await getDefaultUserWallet(),
           imageUrl = messageObj.imageUrls[0],
           messageId = messageObj.messageId,
           { replyingToMessage } = messageObj;
         receivedMessage = messageText.replace(/^"|"$/g, ''); //replace " left and right
         console.log('$$$: ', messageId);
+        if (messageCache.has(messageId)) {
+          return;
+        }
+        messageCache.add(messageId);
         if (replyingToMessage) {
           receivedMessage = receiveMessageFormat(replyingToMessage, replyingToMessageId, receivedMessage, displayName);
         }
         const replyingMessageSendingUserId = replyingToMessage?.sendingUserId;
-        console.log('!name: ', twitterName);
-        console.log('!chatRoomId: ', chatRoomId);
-        console.log('!sendingUserId :', sendingUserId);
-        console.log('!replyingtomessage: ', replyingToMessage);
-        await insertReplyMessageNoDiscord(messageId, replyingToMessageId, replyingMessageSendingUserId, sendingUserId);
-        if (sendingUserId !== defaultUserWallet) {
-          if (receivedMessage || messageObj.status === 'error') {
-            await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId, serverId);
-          }
-          if (imageUrl) {
-            await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId, serverId);
-          }
+        await insertReplyMessageNoDiscord(messageId, replyingToMessageId, replyingMessageSendingUserId, sendingUserId); //add server id
+        if (receivedMessage || messageObj.status === 'error') {
+          await sendMessageToServer(receivedMessage, twitterName, userPfp, chatRoomId);
         }
-        await updateMessageAndDiscordId();
+        if (imageUrl) {
+          await sendMessageToServer(imageUrl, twitterName, userPfp, chatRoomId);
+        }
         break;
       }
       case 'messages': {
@@ -93,6 +95,8 @@ export const initalizeWebsocket = (jwtToken: string, serverId: string): void => 
       }
     }, 1000);
   });
+  wsDict[serverId] = ws;
+  // console.log('DICT$$$: ', wsDict);
 };
 
 //heartbeat every 5 secs
@@ -101,6 +105,19 @@ setInterval(() => {
     ws.ping(); //built in ping pong
   }
 }, 5000);
+
+export function closeWebsocket(): void {
+  if (ws) {
+    console.log('close socket^^^^^^');
+    if (ws.readyState === WebSocket.CLOSING) {
+      console.log('WebSocket is closing');
+    } else if (ws.readyState === WebSocket.CLOSED) {
+      console.log('WebSocket is closed');
+    }
+  } else {
+    return;
+  }
+}
 
 export async function sendNewMessageNotification(message: string, channel_id: string): Promise<void> {
   try {
@@ -126,6 +143,7 @@ export function sendChatMessage(
     replyingToMessageId: replyingToMessageId,
   };
   console.log('Discord message: ', message.content);
+  console.log('sendvchatnmessage chatRoomId: ', chatRoomId);
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(ftMessage));
   } else {

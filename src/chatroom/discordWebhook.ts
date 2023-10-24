@@ -35,18 +35,14 @@ async function insertWebhookForServer(
   }
 }
 
-async function selectWebhookData(wallet: string, serverId: string): Promise<WebhookData | null> {
+async function selectWebhookData(wallet: string): Promise<WebhookData[] | null> {
   try {
-    const result = await pool.query(
-      `SELECT webhook_id, webhook_token FROM server_webhooks WHERE wallet = $1 AND server_id = $2`,
-      [wallet, serverId],
-    );
-    console.log('#WEBHOOKDATA: ', result.rows);
+    console.log('selectwallet: ', wallet);
+    const result = await pool.query(`SELECT webhook_id, webhook_token FROM server_webhooks WHERE wallet = $1`, [
+      wallet,
+    ]);
     if (result && result.rows.length > 0) {
-      return {
-        webhookId: result.rows[0].webhook_id,
-        webhookToken: result.rows[0].webhook_token,
-      };
+      return result.rows;
     }
     return null;
   } catch (err) {
@@ -60,20 +56,27 @@ async function sendMessageToServer(
   twitterName: string,
   userPfp: string,
   wallet: string,
-  serverId: string,
 ): Promise<void> {
-  const result = await selectWebhookData(wallet, serverId);
-  console.log('sendmessage result: ', result);
-  const { webhookId, webhookToken } = result;
-  const webhook = new WebhookClient({
-    id: webhookId,
-    token: webhookToken,
-  });
-  await webhook.send({
-    content: message,
-    username: twitterName,
-    avatarURL: userPfp,
-  });
+  try {
+    const results = await selectWebhookData(wallet);
+    console.log('sendmessage results: ', results);
+    for (const result of results) {
+      console.log('resultresult: ', result);
+      const { webhook_id, webhook_token } = result;
+      console.log('WH ID: ', webhook_id, 'WH TOKEN: ', webhook_token);
+      const webhook = new WebhookClient({
+        id: webhook_id,
+        token: webhook_token,
+      });
+      await webhook.send({
+        content: message,
+        username: twitterName,
+        avatarURL: userPfp,
+      });
+    }
+  } catch (err) {
+    console.error('Failed sending messages to all webhooks: ', err);
+  }
 }
 
 async function getUsernameFromWebhook(channelId: string, serverId: string): Promise<string | null> {
@@ -83,6 +86,7 @@ async function getUsernameFromWebhook(channelId: string, serverId: string): Prom
       serverId,
     ]);
     if (result.rows && result.rows.length > 0) {
+      // console.log('GOTUSERNAME: ', result.rows);
       return result.rows[0].username;
     }
   } catch (err) {

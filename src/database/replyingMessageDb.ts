@@ -16,12 +16,19 @@ async function insertReplyMessageNoDiscord(
   }
 }
 
-async function insertDiscordId(discordId: string | number, discordReferenceId: string | number): Promise<void> {
+async function insertDiscordId(
+  discordId: string | number,
+  discordReferenceId: string | number,
+  serverId: string | number,
+  discordUserId: string | number,
+  discordUsername: string,
+): Promise<void> {
   try {
-    await pool.query(`INSERT INTO discord_message (discord_message_id, discord_message_reply_id) VALUES ($1, $2)`, [
-      discordId,
-      discordReferenceId,
-    ]);
+    console.log('discordID: ', typeof discordId, 'serverID: ', typeof serverId);
+    await pool.query(
+      `INSERT INTO discord_message (discord_message_id, discord_message_reply_id, server_id, discord_user_id, discord_username) VALUES ($1, $2, $3, $4, $5)`,
+      [discordId, discordReferenceId, serverId, discordUserId, discordUsername],
+    );
   } catch (err) {
     console.error('Error inserting discord_message_id database: ', err);
   }
@@ -30,11 +37,21 @@ async function insertDiscordId(discordId: string | number, discordReferenceId: s
 async function updateMessageAndDiscordId(): Promise<void> {
   try {
     await pool.query(
-      `UPDATE replying_messages SET discord_reference_message_id = discord_message_id FROM discord_message WHERE replying_messages.id = discord_message.id`,
+      `UPDATE replying_messages SET discord_reference_message_id = discord_message.discord_message_id FROM discord_message WHERE discord_message.id = replying_messages.id`,
     );
     console.log('Updating database+++');
   } catch (err) {
     console.error('Error updating replying_messages: ', err);
+  }
+}
+
+async function deleteMessageId(messageId: string): Promise<void> {
+  try {
+    const query = `DELETE FROM discord_message WHERE discord_message_id = '${messageId}';`;
+    const result = await pool.query(query);
+    console.log('Reows deleted: ', result.rowCount);
+  } catch (err) {
+    console.error('Failed deleting discord message id: ', err);
   }
 }
 
@@ -53,4 +70,4 @@ async function selectMessageId(originalDiscordMessageId: string | number): Promi
   }
 }
 
-export { insertReplyMessageNoDiscord, insertDiscordId, updateMessageAndDiscordId, selectMessageId };
+export { insertReplyMessageNoDiscord, insertDiscordId, updateMessageAndDiscordId, selectMessageId, deleteMessageId };

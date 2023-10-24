@@ -46,10 +46,17 @@ client.on('messageCreate', async (message) => {
     !message.content.startsWith('!setchatroom') &&
     !message.content.includes(greeting)
   ) {
-    const discordMessageId = message.id;
-    const originalDiscordMessageId = message.reference?.messageId;
-    const serverId = message.guild.id;
-    const username = await getUsernameFromWebhook(message.channel.id, serverId);
+    const discordMessageId = message.id,
+      originalDiscordMessageId = message.reference?.messageId,
+      serverId = message.guild.id,
+      userId = message.author.id,
+      channelId = message.channel.id,
+      username = await getUsernameFromWebhook(channelId, serverId),
+      discordUserName = message.author.username.replace(
+        /([\uE000-\uF8FF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDDFF])/g,
+        '',
+      );
+    console.log('discordBotChannelID: ', channelId);
     jwtToken = await getJwtTokenWithUsername(message.author.username);
     wallet = await getWalletWithUsername(username);
     console.log(username, wallet, '!!!!');
@@ -64,8 +71,12 @@ client.on('messageCreate', async (message) => {
         contentType = attachment.contentType;
       });
     }
-    await insertDiscordId(discordMessageId, originalDiscordMessageId);
-    await updateMessageAndDiscordId();
+    if (message.author.bot) {
+      await insertDiscordId(discordMessageId, originalDiscordMessageId, serverId, userId, discordUserName);
+      await updateMessageAndDiscordId();
+    } else {
+      await message.delete();
+    }
   }
   // if (message.author.bot) return;
   if (!message.author.bot || message.channel.type === ChannelType.DM) {

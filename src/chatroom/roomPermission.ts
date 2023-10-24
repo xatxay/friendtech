@@ -61,11 +61,12 @@ async function insertChatRoomPermission(
 async function manageChannelsPermission(loginToken: string, serverId: string, wallet: string): Promise<void> {
   try {
     const data = await getRoomPermission(loginToken, wallet);
-    console.log('everyInterval: ', data.holdings);
+    // console.log('everyInterval: ', data.holdings);
 
     const guild = client.guilds.cache.get(serverId);
     const chatRoomPrefix = 'ft-';
     const existingChannels = guild.channels.cache.filter((channel) => channel.type === ChannelType.GuildText);
+    const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
     const chatRoomDelete = guild.channels.cache.filter(
       (channel) => channel.type === ChannelType.GuildText && channel.name.startsWith(chatRoomPrefix),
     );
@@ -76,6 +77,9 @@ async function manageChannelsPermission(loginToken: string, serverId: string, wa
     chatRoomDelete.forEach((channel) => {
       console.log('!@#DELETECHANNEL: ', channel.id, '| ', channel.name);
     });
+    // for(const room of allChatRoomId){
+    //   if(!room.discord_channel_id.includes )
+    // }
     //create channel if not exists
     for (const room of data.holdings) {
       const username = room.username;
@@ -87,7 +91,6 @@ async function manageChannelsPermission(loginToken: string, serverId: string, wa
       const wallet = room.chatRoomId;
       const channelName = chatRoomPrefix + chatRoomName;
       const updateChannel = await selectDiscordChannelId(wallet);
-      const allChatRoomId: Array<DiscordChannelId> = await selectChatRoomId();
       const existingChannelId = allChatRoomId.map((channel) => channel.discord_channel_id);
       const existingChannelIdSet = new Set(existingChannelId);
       const checkExistChannel = await checkExistingChannel(wallet);
@@ -105,7 +108,7 @@ async function manageChannelsPermission(loginToken: string, serverId: string, wa
           return null;
         })
         .map((chatRoom) => chatRoom.discord_channel_id);
-      console.log('DELETEEE: ', deleteChannels);
+      // console.log('DELETEEE: ', deleteChannels);
       const promises = Array.from(chatRoomDelete).map(async ([, channel]) => {
         if (deleteChannels.includes(channel.id)) {
           console.log(`Deleted channel ${channel.id}`);
@@ -151,6 +154,7 @@ async function getWalletWithUsername(username: string): Promise<string | null> {
     return null;
   }
 }
+
 async function selectDiscordChannelId(wallet: string): Promise<string | null> {
   const result = await pool.query(`SELECT discord_channel_id FROM chat_room_holdings WHERE chat_room_id = $1`, [
     wallet,
