@@ -9,15 +9,21 @@ A chatroom aggregator for FriendTech and Discord. The app allow users to chat wi
 ## App Features:
 
 -Allow users to connect their FriendTech account on their Discord Server
+
 -Create FriendTech chatroom in their own Discord Server
+
 -Send chat messages
+
 -Track users activities for buy/sell keys
 
 ## Getting Started
 
 -Create a FriendTech account
+
 -Get your jwt token from `Application` tab 
+
 -Discord Account
+
 -Log in through the discord bot
 
 ### Installation
